@@ -1,0 +1,20 @@
+
+40. Printing statistics.
+
+=== Full_adder ===
+
+        +----------Local Count, excluding submodules.
+        | 
+       15 wires
+       15 wire bits
+        5 public wires
+        5 public wire bits
+        5 ports
+        5 port bits
+       12 cells
+        3   $_AND_
+        2   $_OR_
+        2   $_XOR_
+        3   CC_IBUF
+        2   CC_OBUF
+

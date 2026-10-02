@@ -1,0 +1,3145 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Atelier RTLIL — comprendre Yosys de bout en bout</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --paper:#E6EAF0;
+  --panel:#F3F5F8;
+  --ink:#141E33;
+  --ink-soft:#4A566E;
+  --rule:#A9B4C6;
+  --rule-fine:#C8D0DC;
+  --public:#12607E;
+  --private:#8C5410;
+  --keyword:#5B3A8C;
+  --const:#0F6E4F;
+  --added:#0F6E4F;
+  --added-bg:rgba(15,110,79,.13);
+  --removed:#9B2C2C;
+  --removed-bg:rgba(155,44,44,.11);
+  --codebg:#F7F9FB;
+
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --paper:#131A26;
+    --panel:#1A2230;
+    --ink:#DDE4EE;
+    --ink-soft:#97A3B8;
+    --rule:#37455C;
+    --rule-fine:#2A3546;
+    --public:#5FB9D8;
+    --private:#D5A056;
+    --keyword:#B295E0;
+    --const:#5FC79C;
+    --added:#5FC79C;
+    --added-bg:rgba(95,199,156,.15);
+    --removed:#E08787;
+    --removed-bg:rgba(224,135,135,.13);
+    --codebg:#0F1620;
+  }
+}
+:root[data-theme="dark"]{
+  --paper:#131A26; --panel:#1A2230; --ink:#DDE4EE; --ink-soft:#97A3B8;
+  --rule:#37455C; --rule-fine:#2A3546; --public:#5FB9D8; --private:#D5A056;
+  --keyword:#B295E0; --const:#5FC79C; --added:#5FC79C; --added-bg:rgba(95,199,156,.15);
+  --removed:#E08787; --removed-bg:rgba(224,135,135,.13); --codebg:#0F1620;
+}
+*,*::before,*::after{box-sizing:inherit}
+html{scroll-padding-top:env(safe-area-inset-top,0px);-webkit-text-size-adjust:100%}
+body{
+  margin:0;background:var(--paper);color:var(--ink);
+  font-family:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  font-size:16.5px;line-height:1.62;
+  background-image:
+    linear-gradient(var(--rule-fine) 1px,transparent 1px),
+    linear-gradient(90deg,var(--rule-fine) 1px,transparent 1px);
+  background-size:26px 26px;
+  background-position:-1px -1px;
+}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+
+.wrap{max-width:1020px;margin:0 auto;padding:0 20px 88px}
+
+/* ---------- en-tête ---------- */
+header.top{
+  border-bottom:2px solid var(--ink);
+  background:var(--paper);
+  padding:44px 0 22px;margin-bottom:38px;
+}
+h1{
+  font-size:clamp(30px,5.4vw,50px);line-height:1.02;
+  letter-spacing:-.024em;font-weight:700;margin:0 0 14px;max-width:16ch;
+}
+.subtitle{margin:0;max-width:60ch;color:var(--ink-soft);font-size:17px}
+.meta-line{
+  margin-top:20px;padding-top:14px;border-top:1px solid var(--rule-fine);
+  font-size:13.5px;color:var(--ink-soft);display:flex;flex-wrap:wrap;gap:22px;
+}
+.meta-line b{font-weight:600;color:var(--ink)}
+
+/* ---------- sections ---------- */
+section{margin:0 0 66px;scroll-margin-top:24px}
+h2{
+  font-size:clamp(21px,3.1vw,28px);letter-spacing:-.016em;font-weight:600;
+  margin:0 0 6px;display:flex;align-items:baseline;gap:14px;
+}
+h2 .stage{
+  font-size:14px;font-weight:600;color:var(--paper);background:var(--ink);
+  width:29px;height:29px;flex:0 0 29px;border-radius:50%;
+  display:inline-flex;align-items:center;justify-content:center;
+  transform:translateY(-2px);
+}
+h3{font-size:17.5px;font-weight:600;margin:32px 0 8px;letter-spacing:-.008em}
+h4{font-size:15px;font-weight:600;margin:22px 0 6px;color:var(--ink-soft)}
+p{margin:0 0 14px;max-width:72ch}
+.lede{font-size:17px;color:var(--ink-soft);max-width:68ch;margin-bottom:24px}
+a{color:var(--public);text-decoration-thickness:1px;text-underline-offset:2px}
+:focus-visible{outline:2.5px solid var(--public);outline-offset:3px;border-radius:2px}
+
+/* ---------- visionneuse ---------- */
+.viewer{
+  border:1.5px solid var(--ink);background:var(--panel);
+  box-shadow:5px 5px 0 var(--rule-fine);
+}
+.viewer-head{
+  display:flex;flex-wrap:wrap;gap:0;border-bottom:1.5px solid var(--ink);
+}
+.path-btn{
+  flex:1 1 200px;border:0;border-right:1px solid var(--rule);
+  background:transparent;color:var(--ink-soft);cursor:pointer;
+  font-family:inherit;font-size:14.5px;font-weight:500;
+  padding:13px 16px;text-align:left;line-height:1.38;
+  transition:background .14s,color .14s;
+}
+.path-btn:last-child{border-right:0}
+.path-btn strong{display:block;font-weight:600;font-size:15px;color:inherit}
+.path-btn code{
+  font-family:"IBM Plex Mono",monospace;font-size:12.5px;
+  background:transparent;padding:0;color:inherit;
+}
+.path-btn[aria-pressed="true"]{background:var(--ink);color:var(--paper)}
+.path-btn:hover:not([aria-pressed="true"]){background:var(--rule-fine)}
+
+.stepper{
+  display:flex;align-items:stretch;border-bottom:1px solid var(--rule);
+  background:var(--codebg);overflow-x:auto;
+}
+.step-btn{
+  flex:1 1 0;min-width:132px;border:0;border-right:1px solid var(--rule-fine);
+  background:transparent;color:var(--ink-soft);cursor:pointer;
+  font-family:"IBM Plex Mono",monospace;font-size:12.5px;
+  padding:11px 12px 12px;text-align:left;position:relative;
+}
+.step-btn:last-child{border-right:0}
+.step-btn .n{
+  display:block;font-family:"IBM Plex Sans",sans-serif;font-size:10.5px;
+  letter-spacing:.06em;opacity:.62;margin-bottom:3px;font-weight:600;
+}
+.step-btn[aria-pressed="true"]{color:var(--ink);background:var(--panel)}
+.step-btn[aria-pressed="true"]::after{
+  content:"";position:absolute;left:0;right:0;bottom:-1px;height:2.5px;background:var(--public);
+}
+
+.viewer-body{display:grid;grid-template-columns:1fr;gap:0}
+@media(min-width:840px){.viewer-body{grid-template-columns:1.15fr .85fr}}
+.rtlil-pane{padding:0;border-right:0;min-width:0}
+@media(min-width:840px){.rtlil-pane{border-right:1px solid var(--rule)}}
+.pane-label{
+  font-size:12px;font-weight:600;color:var(--ink-soft);
+  padding:9px 16px;border-bottom:1px solid var(--rule-fine);background:var(--codebg);
+  display:flex;justify-content:space-between;gap:12px;align-items:center;
+}
+.pane-label .counts{font-family:"IBM Plex Mono",monospace;font-size:11.5px;font-weight:400}
+pre.rtlil{
+  margin:0;padding:15px 16px 20px;overflow-x:auto;background:var(--codebg);
+  font-family:"IBM Plex Mono",monospace;font-size:12.6px;line-height:1.62;
+  max-height:440px;overflow-y:auto;
+}
+pre.rtlil .ln{display:block;padding:0 4px;margin:0 -4px;border-radius:2px;white-space:pre}
+pre.rtlil .ln.add{background:var(--added-bg);box-shadow:inset 2.5px 0 0 var(--added)}
+pre.rtlil .ln.del{background:var(--removed-bg);box-shadow:inset 2.5px 0 0 var(--removed);opacity:.72}
+.notes{padding:15px 18px 20px;min-width:0}
+.notes p{font-size:14.6px;margin:0 0 12px;max-width:none}
+.notes p:last-child{margin-bottom:0}
+.notes .cmd{
+  font-family:"IBM Plex Mono",monospace;font-size:13px;
+  background:var(--codebg);border:1px solid var(--rule-fine);
+  padding:7px 10px;margin:0 0 14px;display:block;overflow-x:auto;white-space:pre;
+}
+
+/* ---------- jetons RTLIL ---------- */
+.tok-pub{color:var(--public)}
+.tok-priv{color:var(--private)}
+.tok-kw{color:var(--keyword);font-weight:500}
+.tok-const{color:var(--const)}
+.tok-str{color:var(--ink-soft)}
+
+/* ---------- légende sigils ---------- */
+.sigils{display:grid;gap:14px;grid-template-columns:1fr;margin:20px 0 6px}
+@media(min-width:680px){.sigils{grid-template-columns:1fr 1fr}}
+.sigil{border-left:3px solid var(--rule);padding:2px 0 2px 15px}
+.sigil .g{
+  font-family:"IBM Plex Mono",monospace;font-size:22px;font-weight:600;
+  display:block;line-height:1.2;
+}
+.sigil.pub{border-left-color:var(--public)} .sigil.pub .g{color:var(--public)}
+.sigil.priv{border-left-color:var(--private)} .sigil.priv .g{color:var(--private)}
+.sigil p{font-size:14.6px;margin:4px 0 0;max-width:46ch;color:var(--ink-soft)}
+
+/* ---------- grammaire ---------- */
+table{
+  border-collapse:collapse;width:100%;font-size:14.4px;margin:16px 0 8px;
+  background:var(--panel);
+}
+th,td{text-align:left;padding:9px 12px;border-bottom:1px solid var(--rule-fine);vertical-align:top}
+th{
+  font-weight:600;font-size:13px;border-bottom:1.5px solid var(--rule);
+  color:var(--ink-soft);white-space:nowrap;
+}
+td code,th code,p code,li code,dd code,dt code{
+  font-family:"IBM Plex Mono",monospace;font-size:.905em;
+  background:var(--codebg);padding:1px 4px;border:1px solid var(--rule-fine);
+  white-space:nowrap;
+}
+tbody tr:last-child td{border-bottom:0}
+.tbl-scroll{overflow-x:auto;border:1px solid var(--rule);margin:16px 0 8px}
+.tbl-scroll table{margin:0;border:0}
+
+/* ---------- rail du pipeline ---------- */
+.rail{margin:26px 0 0;padding:0;list-style:none;position:relative}
+.rail::before{
+  content:"";position:absolute;left:14px;top:9px;bottom:20px;
+  width:1.5px;background:var(--rule);
+}
+.rail>li{position:relative;padding:0 0 26px 46px}
+.rail>li::before{
+  content:"";position:absolute;left:8px;top:7px;width:13px;height:13px;
+  border-radius:50%;background:var(--paper);border:2px solid var(--ink);
+}
+.rail>li.done::before{background:var(--ink)}
+.rail>li.next::before{border-color:var(--public);border-style:dashed}
+.rail h3{margin:0 0 3px;font-size:16.5px;display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+.rail h3 code{font-size:14px;background:var(--codebg);border:1px solid var(--rule-fine);padding:1px 6px}
+.rail .tag{
+  font-size:11.5px;font-weight:600;letter-spacing:.02em;
+  padding:1px 7px;border:1px solid var(--rule);color:var(--ink-soft);
+  white-space:nowrap;
+}
+.rail li.done .tag{border-color:var(--const);color:var(--const)}
+.rail li.next .tag{border-color:var(--public);color:var(--public)}
+.rail p{font-size:14.6px;margin:0;color:var(--ink-soft);max-width:66ch}
+.rail .obs{
+  font-size:13.8px;margin-top:7px;padding:7px 11px;background:var(--panel);
+  border-left:2.5px solid var(--rule);max-width:66ch;color:var(--ink);
+}
+
+/* ---------- bloc de code copiable ---------- */
+.block{border:1px solid var(--rule);background:var(--codebg);margin:14px 0 18px}
+.block-head{
+  display:flex;justify-content:space-between;align-items:center;gap:12px;
+  padding:7px 12px;border-bottom:1px solid var(--rule-fine);background:var(--panel);
+  font-size:12.5px;color:var(--ink-soft);font-weight:500;
+}
+.block pre{
+  margin:0;padding:13px 14px;overflow-x:auto;
+  font-family:"IBM Plex Mono",monospace;font-size:13px;line-height:1.66;
+}
+.copy{
+  border:1px solid var(--rule);background:var(--paper);color:var(--ink-soft);
+  font-family:inherit;font-size:12px;font-weight:500;padding:3px 10px;cursor:pointer;
+  transition:background .14s,color .14s,border-color .14s;white-space:nowrap;
+}
+.copy:hover{background:var(--ink);color:var(--paper);border-color:var(--ink)}
+.copy.ok{border-color:var(--const);color:var(--const);background:var(--paper)}
+
+/* ---------- correspondance texte / C++ ---------- */
+.map{display:grid;gap:0;border:1px solid var(--rule);margin:18px 0}
+.map-row{
+  display:grid;grid-template-columns:1fr;gap:0;
+  border-bottom:1px solid var(--rule-fine);
+}
+@media(min-width:760px){.map-row{grid-template-columns:minmax(0,1fr) minmax(0,1.25fr)}}
+.map-row:last-child{border-bottom:0}
+.map-l{
+  padding:12px 14px;background:var(--codebg);
+  font-family:"IBM Plex Mono",monospace;font-size:12.6px;line-height:1.6;
+  border-bottom:1px solid var(--rule-fine);overflow-x:auto;
+}
+@media(min-width:760px){.map-l{border-bottom:0;border-right:1px solid var(--rule-fine)}}
+.map-r{padding:12px 15px;font-size:14.4px}
+.map-r b{font-family:"IBM Plex Mono",monospace;font-weight:600;font-size:13.4px}
+.map-r span{display:block;color:var(--ink-soft);margin-top:3px;font-size:13.8px}
+
+/* ---------- briques matérielles ---------- */
+.brick{border:1.5px solid var(--ink);background:var(--panel);margin:0 0 30px}
+.brick-head{
+  display:flex;align-items:center;gap:18px;padding:14px 18px;
+  border-bottom:1.5px solid var(--ink);background:var(--codebg);
+}
+.brick-head svg{flex:0 0 auto;display:block}
+.brick-head .t{min-width:0}
+.brick-head h3{margin:0;font-size:19px;font-weight:600;letter-spacing:-.012em}
+.brick-head p{margin:2px 0 0;font-size:14.4px;color:var(--ink-soft);max-width:54ch}
+.beat{
+  display:grid;grid-template-columns:1fr;gap:0;
+  border-bottom:1px solid var(--rule-fine);
+}
+@media(min-width:700px){.beat{grid-template-columns:104px minmax(0,1fr)}}
+.brick .beat:last-child{border-bottom:0}
+.beat-k{
+  font-size:12.5px;font-weight:600;color:var(--ink-soft);
+  padding:13px 18px 0;line-height:1.3;
+}
+@media(min-width:700px){
+  .beat-k{padding:14px 0 14px 18px;border-right:1px solid var(--rule-fine)}
+}
+.beat-v{padding:6px 18px 14px}
+@media(min-width:700px){.beat-v{padding:14px 18px}}
+.beat-v p{font-size:14.9px;margin:0 0 11px;max-width:68ch}
+.beat-v p:last-child{margin:0}
+.beat-v pre{
+  margin:9px 0 0;padding:9px 11px;background:var(--codebg);
+  border:1px solid var(--rule-fine);overflow-x:auto;
+  font-family:"IBM Plex Mono",monospace;font-size:12.6px;line-height:1.6;
+}
+.beat.img .beat-v p:first-child::first-letter{font-size:1.05em}
+.beat.img{background:linear-gradient(90deg,transparent 0,transparent 100%)}
+.beat.img .beat-k{color:var(--public)}
+.beat.chip .beat-k{color:var(--private)}
+.sym-line{stroke:var(--ink);stroke-width:1.6;fill:none}
+.sym-fill{fill:var(--panel);stroke:var(--ink);stroke-width:1.6}
+.sym-txt{fill:var(--ink);font-family:"IBM Plex Mono",monospace;font-size:10px}
+.sym-accent{stroke:var(--public);stroke-width:1.8;fill:none}
+
+/* ---------- glossaire ---------- */
+.gloss{
+  display:grid;grid-template-columns:1fr;gap:0;
+  border:1px solid var(--rule);background:var(--panel);margin:16px 0 0;
+}
+@media(min-width:620px){.gloss{grid-template-columns:1fr 1fr}}
+.gloss .gi{
+  padding:10px 14px;border-bottom:1px solid var(--rule-fine);
+  font-size:14.4px;min-width:0;
+}
+@media(min-width:620px){
+  .gloss .gi:nth-child(odd){border-right:1px solid var(--rule-fine)}
+}
+.gloss .gi b{
+  font-family:"IBM Plex Mono",monospace;font-weight:600;font-size:13.4px;
+  color:var(--ink);display:block;
+}
+.gloss .gi span{display:block;color:var(--ink-soft);font-size:13.9px;line-height:1.5;margin-top:1px}
+.gloss .gi em{font-style:normal;color:var(--public)}
+.header-link{
+  display:block;margin-top:10px;font-size:13.5px;
+}
+
+/* ---------- dump annoté ---------- */
+.annot{border:1px solid var(--rule);margin:18px 0 8px;background:var(--panel)}
+.annot .ar{
+  display:grid;grid-template-columns:1fr;
+  border-bottom:1px solid var(--rule-fine);
+}
+@media(min-width:780px){.annot .ar{grid-template-columns:minmax(0,300px) minmax(0,1fr)}}
+.annot .ar:last-child{border-bottom:0}
+.annot .ar.sep{background:var(--codebg)}
+.annot .al{
+  padding:9px 13px;background:var(--codebg);overflow-x:auto;
+  font-family:"IBM Plex Mono",monospace;font-size:12.4px;line-height:1.55;
+  white-space:pre;border-bottom:1px solid var(--rule-fine);
+}
+@media(min-width:780px){.annot .al{border-bottom:0;border-right:1px solid var(--rule-fine)}}
+.annot .aa{padding:9px 14px;font-size:14.2px;line-height:1.52}
+.annot .aa b{font-weight:600}
+.annot .ar.key .al{box-shadow:inset 3px 0 0 var(--public)}
+.annot .ar.key .aa{background:rgba(18,96,126,.05)}
+
+/* ---------- littérature ---------- */
+.lit{margin:20px 0 0;padding:0;list-style:none;counter-reset:lit}
+.lit>li{
+  position:relative;padding:13px 0 13px 46px;
+  border-bottom:1px solid var(--rule-fine);font-size:14.6px;
+}
+.lit>li:last-child{border-bottom:0}
+.lit>li::before{
+  counter-increment:lit;content:"[" counter(lit) "]";
+  position:absolute;left:0;top:13px;
+  font-family:"IBM Plex Mono",monospace;font-size:12.5px;font-weight:600;
+  color:var(--ink-soft);
+}
+.lit .ti{font-weight:600;display:block;line-height:1.4}
+.lit .au{color:var(--ink-soft);font-size:13.8px;display:block;margin-top:1px}
+.lit .use{
+  display:block;margin-top:5px;font-size:13.9px;color:var(--ink);
+  padding-left:11px;border-left:2px solid var(--rule);
+}
+.lit a{word-break:break-word}
+.lit .tagd{
+  display:inline-block;font-size:11px;font-weight:600;letter-spacing:.02em;
+  border:1px solid var(--rule);color:var(--ink-soft);padding:0 6px;
+  margin-left:7px;vertical-align:1px;white-space:nowrap;
+}
+
+
+/* ---------- sommaire ---------- */
+.toc{
+  border:1.5px solid var(--ink);background:var(--panel);
+  padding:18px 20px 20px;margin:0 0 50px;
+  column-gap:34px;
+}
+@media(min-width:760px){.toc{columns:2}}
+.toc-p{break-inside:avoid;margin:0 0 6px;padding-top:10px}
+.toc-p:first-child{padding-top:0}
+.toc-pn{
+  font-family:"IBM Plex Mono",monospace;font-size:11.5px;font-weight:600;
+  color:var(--public);margin-right:9px;
+}
+.toc-pt{font-size:13.5px;font-weight:600;letter-spacing:.01em}
+.toc-l{list-style:none;margin:0 0 12px;padding:0;break-inside:avoid}
+.toc-l li{margin:0}
+.toc-l a{
+  display:flex;gap:10px;align-items:baseline;padding:3px 0;
+  font-size:14.4px;text-decoration:none;color:var(--ink);
+  border-bottom:1px solid transparent;
+}
+.toc-l a:hover{border-bottom-color:var(--rule)}
+.toc-n{
+  font-family:"IBM Plex Mono",monospace;font-size:12px;color:var(--ink-soft);
+  flex:0 0 16px;
+}
+
+/* ---------- bannière de partie ---------- */
+.part{
+  border-top:2.5px solid var(--ink);padding:16px 0 0;margin:0 0 30px;
+  scroll-margin-top:16px;
+}
+.part-n{
+  font-family:"IBM Plex Mono",monospace;font-size:12px;font-weight:600;
+  color:var(--public);display:block;margin-bottom:2px;
+}
+.part-t{
+  font-size:clamp(23px,4vw,31px);margin:0;font-weight:700;
+  letter-spacing:-.02em;display:block;
+}
+.part-s{margin:5px 0 0;color:var(--ink-soft);font-size:15px;max-width:60ch}
+
+/* ---------- échelle des niveaux ---------- */
+.levels{list-style:none;margin:22px 0 8px;padding:0}
+.lvl{
+  border:1px solid var(--rule);border-bottom:0;background:var(--panel);
+  padding:14px 17px 16px;position:relative;
+}
+.lvl:last-child{border-bottom:1px solid var(--rule)}
+.lvl.out{opacity:.72}
+.lvl.in{background:var(--panel);box-shadow:inset 4px 0 0 var(--public)}
+.lvl.in.first{border-top:2px solid var(--public)}
+.lvl.in.last{border-bottom:2px solid var(--public)}
+.lvl-h{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;margin-bottom:6px}
+.lvl-n{
+  font-family:"IBM Plex Mono",monospace;font-size:13px;font-weight:600;
+  color:var(--paper);background:var(--ink-soft);
+  width:23px;height:23px;flex:0 0 23px;border-radius:50%;
+  display:inline-flex;align-items:center;justify-content:center;
+  transform:translateY(2px);
+}
+.lvl.in .lvl-n{background:var(--public)}
+.lvl-h h3{margin:0;font-size:17px;font-weight:600}
+.lvl-t{
+  font-size:11.5px;font-weight:600;letter-spacing:.02em;
+  border:1px solid var(--rule);padding:1px 7px;color:var(--ink-soft);white-space:nowrap;
+}
+.lvl.in .lvl-t{border-color:var(--public);color:var(--public)}
+.lvl p{font-size:14.6px;margin:0 0 9px;max-width:68ch}
+.lvl-c{
+  margin:0 0 9px;padding:10px 12px;background:var(--codebg);
+  border:1px solid var(--rule-fine);overflow-x:auto;
+  font-family:"IBM Plex Mono",monospace;font-size:12.6px;line-height:1.6;
+}
+.lvl-w{margin:0!important;font-size:14.2px;color:var(--ink-soft)}
+
+/* ---------- chaîne ---------- */
+.chain{margin:20px 0 8px}
+.ch{
+  border:1px solid var(--rule);background:var(--panel);padding:11px 15px;
+}
+.ch-k{
+  display:block;font-weight:600;font-size:15px;
+  font-family:"IBM Plex Mono",monospace;letter-spacing:-.01em;
+}
+.ch-d{display:block;font-size:14.2px;color:var(--ink-soft);margin-top:2px}
+.ch-a{
+  font-size:13px;color:var(--public);padding:6px 0 6px 26px;
+  position:relative;font-style:normal;
+}
+.ch-a::before{
+  content:"";position:absolute;left:11px;top:0;bottom:0;
+  width:1.5px;background:var(--public);
+}
+
+/* ---------- blocs de sortie standard ---------- */
+pre.std{
+  margin:12px 0 16px;padding:12px 14px;background:var(--codebg);
+  border:1px solid var(--rule);overflow-x:auto;
+  font-family:"IBM Plex Mono",monospace;font-size:12.8px;line-height:1.62;
+}
+.quote{
+  border-left:3px solid var(--public);background:var(--panel);
+  padding:13px 17px;margin:16px 0;
+}
+.quote p{margin:0;font-size:14.9px;max-width:66ch}
+
+
+/* ---------- descente ---------- */
+.descent{margin:20px 0 8px}
+.dst{border:1px solid var(--rule);border-bottom:0;background:var(--panel)}
+.dst:last-child{border-bottom:1px solid var(--rule)}
+.dst.out{opacity:.82}
+.dst-h{
+  display:flex;align-items:center;gap:12px;flex-wrap:wrap;
+  padding:11px 16px;background:var(--codebg);
+  border-bottom:1px solid var(--rule-fine);
+}
+.dst-n{
+  font-family:"IBM Plex Mono",monospace;font-size:13px;font-weight:600;
+  color:var(--paper);background:var(--public);
+  width:24px;height:24px;flex:0 0 24px;border-radius:50%;
+  display:inline-flex;align-items:center;justify-content:center;
+}
+.dst.out .dst-n{background:var(--ink-soft)}
+.dst-l{font-size:16.5px;font-weight:600;letter-spacing:-.01em}
+.dst-t{
+  margin-left:auto;font-size:11.5px;font-weight:600;letter-spacing:.02em;
+  border:1px solid var(--rule);padding:1px 8px;color:var(--ink-soft);white-space:nowrap;
+}
+.dst-t.in{border-color:var(--public);color:var(--public)}
+.dst-b{padding:14px 17px 16px}
+.dst-b p{font-size:14.7px;margin:0 0 11px;max-width:68ch}
+.dst-c{
+  margin:0 0 12px;padding:10px 13px;background:var(--codebg);
+  border:1px solid var(--rule-fine);overflow-x:auto;
+  font-family:"IBM Plex Mono",monospace;font-size:12.6px;line-height:1.62;
+}
+.dst-w{
+  margin:12px 0 0!important;font-size:13.8px;color:var(--ink-soft);
+  padding-left:11px;border-left:2px solid var(--rule);
+}
+.fig{margin:16px 0;padding:0}
+.fig svg{
+  display:block;width:100%;max-width:420px;height:auto;margin:0 auto;
+  background:var(--codebg);border:1px solid var(--rule-fine);padding:8px;
+}
+.fig figcaption{
+  font-size:13.6px;color:var(--ink-soft);margin-top:9px;
+  max-width:62ch;line-height:1.5;
+}
+
+
+/* ---------- bandeau d'usage ---------- */
+.usage{
+  border:1px solid var(--rule);border-left:3px solid var(--private);
+  background:var(--codebg);padding:11px 15px;margin:14px 0 16px;
+}
+.usage-k{
+  display:block;font-size:11.5px;font-weight:600;letter-spacing:.03em;
+  color:var(--private);margin-bottom:3px;
+}
+.usage p{margin:0;font-size:14.4px;max-width:70ch}
+
+
+/* ---------- flot GateMate interactif ---------- */
+.gmflow{border:1.5px solid var(--ink);background:var(--panel);margin:18px 0 10px}
+.gmf-head{
+  display:grid;grid-template-columns:1fr;gap:0;padding:9px 16px;
+  background:var(--codebg);border-bottom:1.5px solid var(--ink);
+  font-size:12px;font-weight:600;color:var(--ink-soft);
+}
+@media(min-width:660px){.gmf-head{grid-template-columns:150px 1fr}}
+.gmf-r{border-bottom:1px solid var(--rule-fine)}
+.gmf-r:last-child{border-bottom:0}
+.gmf-t{
+  display:grid;grid-template-columns:1fr;gap:3px;width:100%;
+  border:0;background:transparent;cursor:pointer;text-align:left;
+  padding:10px 16px;font-family:inherit;color:var(--ink);
+  align-items:baseline;
+}
+@media(min-width:660px){.gmf-t{grid-template-columns:150px 1fr 88px;gap:12px}}
+.gmf-t:hover{background:var(--codebg)}
+.gmf-t[aria-expanded="true"]{background:var(--codebg)}
+.gmf-lab code{
+  background:transparent;border:0;padding:0;font-size:13.6px;font-weight:600;
+}
+.gmf-cells{font-family:"IBM Plex Mono",monospace;font-size:12.4px;line-height:1.6}
+.gmf-cells span{margin-right:11px;white-space:nowrap}
+.gmf-mark{
+  font-size:11px;font-weight:600;letter-spacing:.02em;color:var(--ink-soft);
+  justify-self:start;
+}
+@media(min-width:660px){.gmf-mark{justify-self:end}}
+.gmf-r.changed .gmf-t{box-shadow:inset 3px 0 0 var(--public)}
+.gmf-r.changed .gmf-mark{color:var(--public)}
+.gmf-p{padding:4px 16px 18px;border-top:1px dashed var(--rule-fine)}
+.gmf-p p{font-size:14.5px;margin:10px 0;max-width:70ch}
+.gmf-cmd{
+  font-family:"IBM Plex Mono",monospace;font-size:12.5px!important;
+  color:var(--ink-soft);margin:10px 0 4px!important;
+}
+.gmf-fig{margin:14px 0 0;padding:0}
+.gmf-fig svg{
+  display:block;width:100%;max-width:560px;height:auto;
+  background:var(--codebg);border:1px solid var(--rule-fine);
+  padding:10px;color:var(--ink);
+}
+.gmf-fig text{fill:currentColor;font-family:"IBM Plex Mono",monospace;font-size:11px}
+.gmf-fig figcaption{font-size:13.2px;color:var(--ink-soft);margin-top:7px}
+.gmf-dump{
+  margin:14px 0 0;padding:11px 13px;background:var(--codebg);
+  border:1px solid var(--rule-fine);overflow-x:auto;max-height:340px;overflow-y:auto;
+  font-family:"IBM Plex Mono",monospace;font-size:12.2px;line-height:1.55;
+}
+
+/* ---------- encadré ---------- */
+.aside{
+  border:1px solid var(--rule);border-left:3px solid var(--public);
+  background:var(--panel);padding:14px 17px;margin:20px 0;font-size:14.6px;
+}
+.aside p{margin:0 0 9px;max-width:64ch}
+.aside p:last-child{margin:0}
+.aside b{font-weight:600}
+
+/* ---------- progression ---------- */
+.checklist{list-style:none;padding:0;margin:16px 0 0}
+.checklist li{
+  display:flex;gap:11px;align-items:flex-start;padding:8px 0;
+  border-bottom:1px solid var(--rule-fine);font-size:14.8px;
+}
+.checklist li:last-child{border-bottom:0}
+.checklist input{
+  margin:5px 0 0;width:15px;height:15px;flex:0 0 15px;accent-color:var(--public);cursor:pointer;
+}
+.checklist label{cursor:pointer;max-width:64ch}
+.checklist code{white-space:nowrap}
+.progress-note{font-size:13px;color:var(--ink-soft);margin-top:14px}
+
+footer{border-top:1.5px solid var(--ink);padding-top:20px;font-size:14px;color:var(--ink-soft)}
+footer ul{padding-left:18px;margin:8px 0 0}
+footer li{margin-bottom:5px}
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div class="wrap">
+    <h1>Atelier RTLIL</h1>
+    <p class="subtitle">Ce que Yosys fabrique réellement en mémoire, passe par passe, à partir de vos propres sorties de terminal. Le but n'est pas de lancer la synthèse, mais de savoir lire et décrire ce qui vient de se produire.</p>
+    <div class="meta-line">
+      <span><b>Cible</b> famille GateMate, A1 à A4</span>
+      <span><b>Flot</b> Yosys, nextpnr-himbaechel, gmpack, openFPGALoader</span>
+      <span><b>Sources</b> manuel Yosys, documentation Cologne Chip, mémoire Parnow</span>
+    </div>
+      </div>
+</header>
+
+<div class="wrap">
+
+<nav class="toc" aria-label="Sommaire">
+<div class="toc-p"><span class="toc-pn">I</span><span class="toc-pt">Situer</span></div>
+<ol class="toc-l">
+<li><a href="#niveaux"><span class="toc-n">1</span>Les six niveaux d'abstraction</a></li>
+<li><a href="#chaine"><span class="toc-n">2</span>Du texte au silicium</a></li>
+</ol>
+<div class="toc-p"><span class="toc-pn">II</span><span class="toc-pt">Observer</span></div>
+<ol class="toc-l">
+<li><a href="#viewer"><span class="toc-n">3</span>Deux écritures, deux circuits</a></li>
+<li><a href="#grammaire"><span class="toc-n">4</span>Lire un dump RTLIL</a></li>
+</ol>
+<div class="toc-p"><span class="toc-pn">III</span><span class="toc-pt">Le matériel</span></div>
+<ol class="toc-l">
+<li><a href="#briques"><span class="toc-n">5</span>Les cinq briques</a></li>
+</ol>
+<div class="toc-p"><span class="toc-pn">IV</span><span class="toc-pt">Le flot</span></div>
+<ol class="toc-l">
+<li><a href="#pipeline"><span class="toc-n">6</span>Le pipeline, station par station</a></li>
+<li><a href="#gatemate"><span class="toc-n">7</span>Du RTLIL au bitstream</a></li>
+</ol>
+<div class="toc-p"><span class="toc-pn">V</span><span class="toc-pt">Approfondir</span></div>
+<ol class="toc-l">
+<li><a href="#process"><span class="toc-n">8</span>Du texte aux objets C++</a></li>
+<li><a href="#labo"><span class="toc-n">9</span>Votre banc d'essai</a></li>
+</ol>
+<div class="toc-p"><span class="toc-pn">VI</span><span class="toc-pt">Référence</span></div>
+<ol class="toc-l">
+<li><a href="#abreviations"><span class="toc-n">10</span>Abréviations et vocabulaire</a></li>
+<li><a href="#litterature"><span class="toc-n">11</span>Littérature</a></li>
+</ol>
+</nav>
+
+<div class="part" id="part-1">
+<span class="part-n">Partie I</span>
+<h2 class="part-t">Situer</h2>
+<p class="part-s">Ce qu'est un niveau d'abstraction, et où Yosys commence et s'arrête.</p>
+</div>
+
+<section id="niveaux">
+  <h2><span class="stage">1</span>Les six niveaux d'abstraction</h2>
+  <p class="lede">Avant toute chose, il faut savoir de quoi on parle quand on dit « niveau ». La confusion la plus fréquente vient de là, et elle rend illisible tout le reste.</p>
+
+  <div class="aside">
+    <p><b>L'image.</b> Une carte du même territoire existe à plusieurs échelles. Le globe montre les continents, la carte routière montre les villes, le plan de quartier montre les rues, le plan de maison montre les pièces. C'est le même endroit à chaque fois — seul le niveau de détail change.</p>
+    <p>On ne navigue pas dans une ville avec un globe, et on ne prépare pas un vol transatlantique avec un plan de quartier. De même, on ne décrit pas un processeur entier transistor par transistor, et on ne grave pas une puce à partir d'un schéma de blocs.</p>
+  </div>
+
+  <p>Voici le <strong>même calcul</strong> écrit aux six niveaux. J'ai choisi une multiplication-accumulation parce qu'elle existe réellement à chacun d'eux.</p>
+
+  <ol class="levels">
+    <li class="lvl out">
+      <div class="lvl-h"><span class="lvl-n">1</span><h3>Niveau système</h3><span class="lvl-t">hors Yosys</span></div>
+      <p>Des blocs et des échanges entre eux. Aucun bit, aucune horloge, aucun signal.</p>
+      <pre class="lvl-c">« Un accélérateur MAC lit ses opérandes en mémoire via un bus,
+   calcule, puis écrit le résultat. »</pre>
+      <p class="lvl-w">Écrit en SystemC, en UML, ou sur un tableau blanc. Sert à décider de l'architecture, pas à fabriquer quoi que ce soit.</p>
+    </li>
+
+    <li class="lvl out">
+      <div class="lvl-h"><span class="lvl-n">2</span><h3>Niveau algorithmique</h3><span class="lvl-t">hors Yosys</span></div>
+      <p>Ce qu'il faut calculer, sans dire en combien de cycles ni avec quels registres.</p>
+      <pre class="lvl-c">int mac(int a[8], int b[8]) {
+    int s = 0;
+    for (int i = 0; i &lt; 8; i++)
+        s += a[i] * b[i];
+    return s;
+}</pre>
+      <p class="lvl-w">Pas d'horloge. C'est <strong>l'outil</strong> qui décidera du découpage temporel. C'est le domaine de la synthèse de haut niveau — Vitis HLS, hls4ml. Ces outils produisent du Verilog RTL, qu'on donne ensuite à Yosys.</p>
+    </li>
+
+    <li class="lvl in first">
+      <div class="lvl-h"><span class="lvl-n">3</span><h3>Niveau RTL</h3><span class="lvl-t">Yosys entre ici</span></div>
+      <p>Vous décidez vous-même des registres et du découpage en cycles. C'est le premier niveau où le temps existe.</p>
+      <pre class="lvl-c">always @(posedge clk)
+    if (rst) acc &lt;= 0;
+    else     acc &lt;= acc + a * b;</pre>
+      <p class="lvl-w">L'horloge est explicite, <code>acc</code> est un registre que vous avez choisi, une multiplication par cycle parce que vous l'avez écrit ainsi. <strong>C'est le point d'entrée de Yosys.</strong></p>
+    </li>
+
+    <li class="lvl in">
+      <div class="lvl-h"><span class="lvl-n">4</span><h3>Niveau porte logique</h3><span class="lvl-t">Yosys</span></div>
+      <p>Plus d'arithmétique. Uniquement des fonctions booléennes d'un seul bit.</p>
+      <pre class="lvl-c">cell $_AND_ $auto$1
+  connect \A \a
+  connect \B \b
+  connect \Y $0
+end</pre>
+      <p class="lvl-w">Une addition de 8 bits est devenue une centaine de ces cellules. Encore indépendant de toute marque : ces portes existent chez tous les fabricants.</p>
+    </li>
+
+    <li class="lvl in last">
+      <div class="lvl-h"><span class="lvl-n">5</span><h3>Niveau porte physique</h3><span class="lvl-t">Yosys sort ici</span></div>
+      <p>Les cellules réelles d'une puce précise, avec leur nom de catalogue.</p>
+      <pre class="lvl-c">cell CC_LUT2 $auto$7
+  parameter \INIT 4'b1000
+  connect \I0 \a
+  connect \I1 \b
+  connect \O $0
+end</pre>
+      <p class="lvl-w">Ce n'est plus une porte ET mais une <strong>table de vérité configurée</strong> pour se comporter comme un ET. Sur GateMate : <code>CC_LUT2</code>, <code>CC_DFF</code>, <code>CC_ADDF</code>, <code>CC_MULT</code>. <strong>C'est la sortie de Yosys.</strong></p>
+    </li>
+
+    <li class="lvl out">
+      <div class="lvl-h"><span class="lvl-n">6</span><h3>Niveau transistor</h3><span class="lvl-t">hors Yosys</span></div>
+      <p>Les NMOS et PMOS qui composent physiquement une LUT.</p>
+      <pre class="lvl-c">M1 out in vdd vdd pmos W=1u L=0.18u
+M2 out in gnd gnd nmos W=0.5u L=0.18u</pre>
+      <p class="lvl-w">Sur FPGA, ce silicium est déjà gravé en usine : vous n'y touchez jamais. Sur ASIC, c'est là que finit le flot.</p>
+    </li>
+  </ol>
+
+  <h3>La descente complète d'une porte ET</h3>
+  <p>Voici l'exemple qui relie tout ce qui précède. Une seule porte ET, suivie du niveau 3 au niveau 6, avec à chaque palier le nom exact de l'objet et l'endroit où il vit.</p>
+
+  <div class="descent">
+
+    <div class="dst">
+      <div class="dst-h"><span class="dst-n">3</span><span class="dst-l">Niveau RTL</span><span class="dst-t in">Yosys</span></div>
+      <div class="dst-b">
+        <pre class="dst-c">assign s = a &amp; b;
+
+cell $and $and$x.v:4$1
+  parameter \A_WIDTH 1
+  parameter \B_WIDTH 1
+  parameter \Y_WIDTH 1
+  parameter \A_SIGNED 0
+  ...</pre>
+        <p>Un <strong>opérateur</strong>, pas une porte. Ses paramètres de largeur lui permettraient de représenter huit portes d'un coup si <code>a</code> et <code>b</code> étaient des bus. Rien n'est encore décidé sur le matériel.</p>
+        <p class="dst-w">Produit par <code>read_verilog</code>. Visible dans votre tout premier dump.</p>
+      </div>
+    </div>
+
+    <div class="dst">
+      <div class="dst-h"><span class="dst-n">4</span><span class="dst-l">Niveau porte logique</span><span class="dst-t in">Yosys</span></div>
+      <div class="dst-b">
+        <pre class="dst-c">cell $_AND_ $auto$simplemap$5
+  connect \A \a
+  connect \B \b
+  connect \Y \s
+end</pre>
+        <p>Une <strong>vraie porte</strong> : un bit, deux entrées, aucun paramètre. Les tirets bas signalent le changement de niveau. C'est ici que vit la porte ET du cours de logique, celle qu'on dessine avec un demi-cercle.</p>
+        <p>Et c'est ici qu'intervient l'identité qui rend la suite possible. Une porte ET peut s'écrire comme un aiguillage :</p>
+        <pre class="dst-c">s = a &amp; b        <span class="tok-str">équivaut à</span>        s = a ? b : 0</pre>
+        <p>Vous avez déjà fabriqué cette équivalence vous-même, sans le savoir : le chemin B de la section 3 produit un <code>$mux</code> pour un circuit qui calcule un ET. Même fonction, écriture différente.</p>
+        <p class="dst-w">Produit par <code>techmap</code> et <code>simplemap</code>.</p>
+      </div>
+    </div>
+
+    <div class="dst">
+      <div class="dst-h"><span class="dst-n">5</span><span class="dst-l">Niveau porte physique</span><span class="dst-t in">sortie de Yosys</span></div>
+      <div class="dst-b">
+        <pre class="dst-c">cell CC_LUT2 $auto$lut_tree_map$9
+  parameter \INIT 4'b1000
+  connect \I0 \a
+  connect \I1 \b
+  connect \O  \s
+end</pre>
+        <p>La porte a disparu. Il ne reste qu'un <strong>contenu de mémoire</strong> : quatre bits, la table de vérité du ET. Généralisez l'identité du niveau 4 et vous obtenez exactement le mécanisme — un aiguillage à quatre entrées, dont les quatre données sont des cases mémoire, et dont les deux sélections sont <code>a</code> et <code>b</code>.</p>
+
+        <figure class="fig">
+          <svg viewBox="0 0 300 205" role="img" aria-label="Schéma interne d'une LUT2 : quatre cellules SRAM, un arbre de trois multiplexeurs, deux entrées de sélection">
+            <text class="sym-txt" x="14" y="10">SRAM</text>
+            <rect class="sym-fill" x="16" y="16" width="30" height="28"/>
+            <text class="sym-txt" x="27" y="35">0</text>
+            <rect class="sym-fill" x="16" y="58" width="30" height="28"/>
+            <text class="sym-txt" x="27" y="77">0</text>
+            <rect class="sym-fill" x="16" y="100" width="30" height="28"/>
+            <text class="sym-txt" x="27" y="119">0</text>
+            <rect class="sym-fill" x="16" y="142" width="30" height="28"/>
+            <text class="sym-txt" x="27" y="161">1</text>
+
+            <line class="sym-line" x1="46" y1="30" x2="118" y2="30"/>
+            <line class="sym-line" x1="46" y1="72" x2="118" y2="72"/>
+            <line class="sym-line" x1="46" y1="114" x2="118" y2="114"/>
+            <line class="sym-line" x1="46" y1="156" x2="118" y2="156"/>
+
+            <path class="sym-fill" d="M118 20 L144 34 L144 68 L118 82 Z"/>
+            <path class="sym-fill" d="M118 104 L144 118 L144 152 L118 166 Z"/>
+            <line class="sym-accent" x1="131" y1="82" x2="131" y2="92"/>
+            <text class="sym-txt" x="127" y="102">a</text>
+            <line class="sym-accent" x1="131" y1="166" x2="131" y2="176"/>
+            <text class="sym-txt" x="127" y="186">a</text>
+
+            <line class="sym-line" x1="144" y1="51" x2="200" y2="51"/>
+            <line class="sym-line" x1="144" y1="135" x2="200" y2="135"/>
+
+            <path class="sym-fill" d="M200 40 L228 56 L228 130 L200 146 Z"/>
+            <line class="sym-accent" x1="214" y1="146" x2="214" y2="158"/>
+            <text class="sym-txt" x="210" y="168">b</text>
+
+            <line class="sym-line" x1="228" y1="93" x2="278" y2="93"/>
+            <text class="sym-txt" x="282" y="97">s</text>
+          </svg>
+          <figcaption>Intérieur d'une LUT2. Les quatre cases de gauche contiennent <code>INIT</code>. Les entrées logiques <code>a</code> et <code>b</code> ne sont pas des données mais des <strong>adresses</strong> : elles pilotent l'arbre de multiplexeurs qui va chercher la bonne case.</figcaption>
+        </figure>
+
+        <p>Changez les quatre cases et la même LUT change de fonction, sans qu'un seul transistor ne bouge.</p>
+        <div class="tbl-scroll">
+        <table>
+          <thead><tr><th>Contenu <code>INIT</code></th><th>Cases lues</th><th>Fonction obtenue</th></tr></thead>
+          <tbody>
+            <tr><td><code>4'b1000</code></td><td>0, 0, 0, 1</td><td><code>a &amp; b</code></td></tr>
+            <tr><td><code>4'b1110</code></td><td>0, 1, 1, 1</td><td><code>a | b</code></td></tr>
+            <tr><td><code>4'b0110</code></td><td>0, 1, 1, 0</td><td><code>a ^ b</code></td></tr>
+            <tr><td><code>4'b0111</code></td><td>1, 1, 1, 0</td><td><code>~(a &amp; b)</code></td></tr>
+          </tbody>
+        </table>
+        </div>
+        <p class="dst-w">Produit par <code>map_luts</code>, l'avant-dernière étape de <code>synth_gatemate</code>. C'est le dernier objet que Yosys écrit dans le <code>.json</code>.</p>
+      </div>
+    </div>
+
+    <div class="dst out">
+      <div class="dst-h"><span class="dst-n">6</span><span class="dst-l">Niveau transistor</span><span class="dst-t">hors Yosys</span></div>
+      <div class="dst-b">
+        <p>Descendons une dernière fois. Les deux objets du schéma ci-dessus sont eux-mêmes faits de transistors.</p>
+        <p>Un multiplexeur 2 vers 1 est une paire de <strong>portes de transmission</strong> : deux transistors qui laissent passer ou bloquent, commandés en opposition. Une case SRAM est une paire d'inverseurs tête-bêche plus deux transistors d'accès, soit six transistors en tout.</p>
+        <pre class="dst-c">LUT2 = 3 multiplexeurs  +  4 cases SRAM
+     ≈ 3 × (2 transistors)  +  4 × (6 transistors)
+     ≈ 30 transistors</pre>
+        <p>Une porte ET CMOS classique en demande six. Une LUT2 en coûte donc environ cinq fois plus — et c'est le <strong>prix de la reconfigurabilité</strong>. Vous payez trente transistors pour une fonction que six auraient suffi à réaliser, en échange du droit de changer cette fonction après la fabrication.</p>
+        <p class="dst-w">Sur FPGA, ce silicium est gravé en usine : vous n'y touchez jamais. Sur ASIC, c'est ici que finit le flot, et la porte ET reste une vraie porte ET à six transistors.</p>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="aside">
+    <p><b>Où se situe quoi, en une phrase chacun.</b></p>
+    <p><strong>RTL</strong> : vous décrivez des registres et des transferts, Yosys vous répond des opérateurs paramétrables en <code>$nom</code>.</p>
+    <p><strong>Porte logique</strong> : des booléens d'un bit, en <code>$_NOM_</code>, indépendants de tout fabricant. Une porte ET y est encore une porte ET.</p>
+    <p><strong>Porte physique</strong> : des cellules de catalogue en <code>CC_</code>. La porte ET n'existe plus, seul son contenu de table subsiste.</p>
+    <p><strong>Transistor</strong> : le silicium. Sur FPGA il est figé et vous ne le voyez jamais ; c'est précisément pour cela que la LUT existe.</p>
+  </div>
+
+  <h3>Le signe qui vous dit où vous êtes</h3>
+  <p>Voici le réflexe le plus utile de toute cette page. Dans un dump, regardez le <strong>type de la cellule</strong> — sa forme vous donne le niveau immédiatement.</p>
+  <div class="tbl-scroll">
+  <table>
+    <thead><tr><th>Forme du type</th><th>Niveau</th><th>Largeur</th><th>Paramètres</th><th>Exemple</th></tr></thead>
+    <tbody>
+      <tr><td><code>$and</code></td><td>RTL, opérateur</td><td>n bits</td><td>cinq, dont <code>A_WIDTH</code> et <code>A_SIGNED</code></td><td>peut représenter 8 portes d'un coup</td></tr>
+      <tr><td><code>$_AND_</code></td><td>Porte logique</td><td>1 bit</td><td>aucun</td><td>une seule porte, point</td></tr>
+      <tr><td><code>CC_LUT2</code></td><td>Porte physique</td><td>1 bit</td><td><code>INIT</code>, le contenu de la table</td><td>une configuration de CPE</td></tr>
+    </tbody>
+  </table>
+  </div>
+  <p>Les <strong>tirets bas autour du nom</strong> marquent la frontière entre RTL et porte logique. Le <code>$and</code> de votre <code>pas1.v</code> avait cinq paramètres ; un <code>$_AND_</code> n'en a aucun. Quand les tirets bas apparaissent, vous venez de descendre d'un niveau. Quand le <code>$</code> initial disparaît, vous avez atteint le silicium.</p>
+
+  <h3>Pourquoi « comportemental » embrouille tout le monde</h3>
+  <p>Le mot désigne deux choses différentes, et c'est de là que vient la confusion.</p>
+  <div class="tbl-scroll">
+  <table>
+    <thead><tr><th>Sens</th><th>Ce que ça veut dire</th><th>Synthétisable ?</th></tr></thead>
+    <tbody>
+      <tr><td><strong>Style</strong> d'écriture comportemental</td><td>Utiliser <code>always</code>, <code>if</code>, <code>case</code> au lieu d'instancier des portes à la main</td><td>Oui — c'est du RTL</td></tr>
+      <tr><td><strong>Niveau</strong> d'abstraction comportemental</td><td>Décrire sans horloge ni registres, comme au niveau 2</td><td>Non par Yosys</td></tr>
+    </tbody>
+  </table>
+  </div>
+  <p>Votre <code>pas1.v</code> est écrit en <em>style</em> comportemental, et il est pourtant du RTL — d'où le fait que Yosys le synthétise sans broncher. La règle tient en une phrase : du Verilog comportemental <strong>mais synthétisable</strong> est du RTL.</p>
+  <p>Ce qui fait basculer dans le comportemental pur, simulable mais jamais synthétisable :</p>
+  <pre class="std">always begin
+    #10 clk = ~clk;        <span class="tok-str">← délai temporel : simulation seulement</span>
+end
+
+initial begin
+    $readmemh("data.hex", mem);   <span class="tok-str">← lecture de fichier</span>
+    $display("valeur = %d", x);   <span class="tok-str">← affichage</span>
+end
+
+while (flag) ...           <span class="tok-str">← boucle non bornée : combien de portes ?</span></pre>
+  <p>La question qui tranche à chaque fois : <strong>combien de portes faudrait-il ?</strong> Si la réponse n'est pas un nombre fini connu à l'avance, ce n'est pas synthétisable.</p>
+</section>
+
+<section id="chaine">
+  <h2><span class="stage">2</span>Du texte au silicium</h2>
+  <p class="lede">Deuxième source de confusion : on parle de l'AST, du RTLIL, de netlist et de bitstream sans dire lequel vient après lequel, ni lequel on peut voir. Voici la chaîne complète.</p>
+
+  <div class="aside">
+    <p><b>L'image.</b> Traduire un roman d'une langue à l'autre. On ne substitue pas les mots un à un. On lit la phrase, on en construit mentalement la structure grammaticale — sujet, verbe, complément — puis on reformule cette structure dans la langue d'arrivée.</p>
+    <p>Yosys fait exactement cela. Le texte Verilog est la phrase de départ, l'<strong>AST</strong> est la structure grammaticale, le <strong>RTLIL</strong> est la reformulation dans la langue du matériel.</p>
+  </div>
+
+  <div class="chain">
+    <div class="ch"><span class="ch-k">Texte Verilog</span><span class="ch-d">Des caractères. <code>assign y = a &amp; b;</code></span></div>
+    <div class="ch-a">parseur Bison, avec une grammaire prédéfinie</div>
+    <div class="ch"><span class="ch-k">AST — objets <code>AstNode</code></span><span class="ch-d">La structure du <em>langage</em>. Invisible dans les dumps.</span></div>
+    <div class="ch-a">générateur RTLIL, selon le type de chaque nœud</div>
+    <div class="ch"><span class="ch-k">RTLIL — objets en mémoire</span><span class="ch-d">La structure du <em>matériel</em>. C'est ce que <code>dump</code> vous montre.</span></div>
+    <div class="ch-a">les passes : proc, opt, techmap, synth_gatemate</div>
+    <div class="ch"><span class="ch-k">Netlist de primitives</span><span class="ch-d">Toujours du RTLIL, mais peuplé de <code>CC_</code>. Exporté en <code>.json</code>.</span></div>
+    <div class="ch-a">nextpnr-himbaechel</div>
+    <div class="ch"><span class="ch-k">Implémentation placée</span><span class="ch-d">Coordonnées et routage. Fichier <code>impl.txt</code>.</span></div>
+    <div class="ch-a">gmpack</div>
+    <div class="ch"><span class="ch-k">Bitstream</span><span class="ch-d">Binaire de configuration. Fichier <code>.bit</code>.</span></div>
+  </div>
+
+  <h3>L'AST, l'étape que vous ne verrez jamais</h3>
+  <p>Pour <code>assign y = a &amp; b;</code>, le parseur construit un arbre de ce genre :</p>
+  <pre class="std">AST_ASSIGN
+├── AST_IDENTIFIER  "y"
+└── AST_BIT_AND
+    ├── AST_IDENTIFIER  "a"
+    └── AST_IDENTIFIER  "b"</pre>
+  <p>Chaque nœud est un objet <code>AstNode</code>. L'arbre se construit uniquement <strong>en ajoutant des nœuds comme enfants</strong> d'autres nœuds, au fur et à mesure que les règles de grammaire se déclenchent, avec une pile comme objet auxiliaire.</p>
+  <p>Point important : l'AST n'est <strong>pas un niveau d'abstraction matérielle</strong>. C'est une représentation du langage. Il ne contient ni porte, ni registre, ni horloge — seulement de la syntaxe. C'est pourquoi aucune commande ne vous le montre dans le flot normal, et pourquoi il n'apparaît dans aucun des six niveaux de la section précédente.</p>
+  <p>Si vous voulez tout de même le voir :</p>
+  <pre class="std">yosys&gt; read_verilog -dump_ast1 pas1.v</pre>
+
+  <h3>La découverte qui change la lecture des dumps</h3>
+  <p>La conclusion du mémoire de Parnow contient une phrase qui explique directement ce que vous avez observé au premier tour :</p>
+  <div class="quote">
+    <p>Les nœuds représentant des opérations sont transformés en objets <code>RTLIL::Cell</code>, qui pourront être convertis en portes logiques réelles lors d'une étape supplémentaire de mapping technologique. Cela permet de conclure que <strong>les premières étapes de la synthèse sont déjà effectuées lors de la génération du RTLIL</strong>.</p>
+  </div>
+  <p>Autrement dit : la descente ne commence pas à <code>proc</code>, mais dès <code>read_verilog</code>. Et la génération dépend du <strong>type de nœud</strong> rencontré.</p>
+  <div class="tbl-scroll">
+  <table>
+    <thead><tr><th>Type de nœud AST</th><th>Traitement</th><th>Ce que vous obtenez</th></tr></thead>
+    <tbody>
+      <tr><td><code>AST_WIRE</code></td><td>Conversion directe vers l'objet équivalent</td><td>un <code>RTLIL::Wire</code></td></tr>
+      <tr><td><code>AST_BIT_AND</code>, <code>AST_ADD</code> — les opérations</td><td>Conversion directe en cellule</td><td>une <code>RTLIL::Cell</code> de type <code>$and</code>, <code>$add</code></td></tr>
+      <tr><td><code>AST_ALWAYS</code> — le comportemental</td><td><strong>Passe par un générateur de process</strong></td><td>un <code>RTLIL::Process</code></td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <h3>C'est exactement ce que vous avez vu</h3>
+  <p>Relisez la console de votre tout premier essai. Les deux conversions y sont annoncées, l'une après l'autre :</p>
+  <pre class="std">yosys&gt; read_verilog pas1.v
+
+1. Executing Verilog-2005 frontend: pas1.v
+Parsing Verilog input from `pas1.v' to AST representation.     <span class="tok-str">← texte vers AST</span>
+Generating RTLIL representation for module `\pas1'.             <span class="tok-str">← AST vers RTLIL</span>
+Successfully finished Verilog frontend.</pre>
+  <p>Et le résultat diffère selon le chemin que vous aviez pris, exactement comme le tableau ci-dessus le prédit :</p>
+  <div class="tbl-scroll">
+  <table>
+    <thead><tr><th></th><th>Chemin A — <code>assign</code></th><th>Chemin B — <code>always</code></th></tr></thead>
+    <tbody>
+      <tr><td>Nœud AST</td><td><code>AST_ASSIGN</code> avec <code>AST_BIT_AND</code></td><td><code>AST_ALWAYS</code></td></tr>
+      <tr><td>Traitement</td><td>conversion directe</td><td>générateur de process</td></tr>
+      <tr><td><code>stat</code> juste après</td><td><code>1 cells / 1 $and</code></td><td><code>0 cells / 1 processes</code></td></tr>
+      <tr><td>Il reste à faire</td><td>rien, la cellule existe</td><td><code>proc</code>, pour convertir le process</td></tr>
+    </tbody>
+  </table>
+  </div>
+  <p>Vous aviez donc les deux comportements sous les yeux dès le premier tour, sans le vocabulaire pour les nommer. La section suivante vous les remet côte à côte, et cette fois vous saurez pourquoi ils diffèrent.</p>
+</section>
+
+<div class="part" id="part-2">
+<span class="part-n">Partie II</span>
+<h2 class="part-t">Observer</h2>
+<p class="part-s">Le RTLIL sous les yeux, et comment le lire.</p>
+</div>
+
+<section id="viewer">
+  <h2><span class="stage">3</span>Deux écritures, deux circuits</h2>
+  <p class="lede">Vous savez maintenant pourquoi ces deux écritures ne produisent pas la même chose : l'une passe par un nœud d'opération, l'autre par un générateur de process. Voyez-le se produire. À gauche un <code>assign</code>, à droite un <code>always</code> — la même fonction logique <code>a&nbsp;&amp;&nbsp;b</code>. Suivez les trois mêmes commandes sur chacun et comparez ce que Yosys construit. Les lignes surlignées sont celles qui viennent de changer.</p>
+
+  <div class="viewer">
+    <div class="viewer-head" role="group" aria-label="Choix du design">
+      <button class="path-btn" data-path="assign" aria-pressed="true">
+        <strong>Chemin A — flux continu</strong>
+        <code>assign out = a &amp; b;</code>
+      </button>
+      <button class="path-btn" data-path="always" aria-pressed="false">
+        <strong>Chemin B — bloc procédural</strong>
+        <code>always @(*) if (a) out = b; else out = 0;</code>
+      </button>
+    </div>
+
+    <div class="stepper" id="stepper" role="group" aria-label="Étapes"></div>
+
+    <div class="viewer-body">
+      <div class="rtlil-pane">
+        <div class="pane-label">
+          <span>État RTLIL en mémoire</span>
+          <span class="counts" id="counts"></span>
+        </div>
+        <pre class="rtlil" id="dump" tabindex="0"></pre>
+      </div>
+      <div class="notes" id="notes"></div>
+    </div>
+  </div>
+
+  <div class="aside">
+    <p><b>Le point à retenir.</b> Le chemin A produit une cellule <code>$and</code> dès la lecture du fichier. Le chemin B ne produit aucune cellule : tout reste enfermé dans un <code>process</code> jusqu'à ce que la passe <code>proc</code> le convertisse — et ce qui en sort est un <code>$mux</code>, pas un <code>$and</code>.</p>
+    <p>Yosys traduit fidèlement la <b>structure que vous avez écrite</b>. Il ne cherche pas, à ce stade, à reconnaître que <code>a ? b : 0</code> équivaut à <code>a &amp; b</code>. C'est le travail des passes d'optimisation, puis d'ABC. Sur un FPGA, les deux finiront dans la même LUT.</p>
+  </div>
+</section>
+
+<section id="grammaire">
+  <h2><span class="stage">4</span>Lire un dump RTLIL</h2>
+  <p class="lede">RTLIL n'a que cinq constructions. Une fois ce vocabulaire acquis, n'importe quel état interne de Yosys devient lisible à vue.</p>
+
+  <div class="tbl-scroll">
+  <table>
+    <thead><tr><th>Construction</th><th>Rôle</th><th>Exemple tiré de vos sorties</th></tr></thead>
+    <tbody>
+      <tr><td><code>module</code></td><td>Le conteneur. Un par module Verilog.</td><td><code>module \pas1</code></td></tr>
+      <tr><td><code>wire</code></td><td>Un signal. Le chiffre après <code>input</code>/<code>output</code> est l'<em>index du port</em>, pas une largeur.</td><td><code>wire input 1 \a</code></td></tr>
+      <tr><td><code>cell</code></td><td>Un composant, avec ses <code>parameter</code> (comportement) et ses <code>connect</code> (câblage).</td><td><code>cell $mux $procmux$3</code></td></tr>
+      <tr><td><code>connect</code></td><td>Un alias entre deux signaux. Au niveau module, ce n'est pas un composant : c'est un court-circuit.</td><td><code>connect \out $procmux$3_Y</code></td></tr>
+      <tr><td><code>process</code></td><td>Un bloc <code>always</code> non encore converti. Contient un arbre de décision et des règles de synchronisation.</td><td><code>process $proc$pas1.v:4$1</code></td></tr>
+      <tr><td><code>attribute</code></td><td>Métadonnée attachée à l'objet qui suit. <code>\src</code> conserve la position dans le fichier source.</td><td><code>attribute \src "pas1.v:4.5-9.8"</code></td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <h3>Les deux sigils</h3>
+  <p>C'est l'information la plus dense du dump, et elle tient en un caractère.</p>
+  <div class="sigils">
+    <div class="sigil pub">
+      <span class="g">\nom</span>
+      <p>Nom <strong>public</strong> : écrit par vous dans le Verilog. Yosys s'interdit de le supprimer sans raison, et un port public du module top devient une broche physique du FPGA.</p>
+    </div>
+    <div class="sigil priv">
+      <span class="g">$nom</span>
+      <p>Nom <strong>privé</strong> : fabriqué par Yosys. Les optimisations peuvent les créer, renommer ou supprimer librement. L'écart entre <code>wires</code> et <code>public wires</code> dans <code>stat</code> mesure exactement ce que Yosys a inventé.</p>
+    </div>
+  </div>
+
+  <h4>Conventions de nommage que vous rencontrerez</h4>
+  <div class="tbl-scroll">
+  <table>
+    <thead><tr><th>Forme</th><th>Signification</th></tr></thead>
+    <tbody>
+      <tr><td><code>$and$pas1.v:4$1_Y</code></td><td>Type de cellule, fichier, ligne, index unique, port. Remonte directement à la ligne de source.</td></tr>
+      <tr><td><code>$0\out[0:0]</code></td><td>Valeur intermédiaire du signal <code>out</code>, niveau 0. Variable de calcul interne à un process, pas un fil physique.</td></tr>
+      <tr><td><code>$procmux$4_CMP</code></td><td>Comparateur généré par <code>proc_mux</code> pour évaluer la condition d'un <code>case</code>.</td></tr>
+      <tr><td><code>autoidx 5</code></td><td>Compteur global des objets auto-générés. Sa valeur indique combien Yosys en a créé.</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <h3>Le dump complet, ligne par ligne</h3>
+  <p>Voici votre sortie après <code>proc</code>, entièrement annotée. Les lignes marquées d'un trait bleu sont celles où se joue quelque chose que vous ne devineriez pas à la lecture seule.</p>
+
+  <div class="annot">
+    <div class="ar"><div class="al">autoidx 5</div><div class="aa">Compteur global. Il était à 2 après la lecture : <code>proc</code> a donc alloué trois nouveaux identifiants.</div></div>
+    <div class="ar"><div class="al">attribute \src "pas1.v:1.1-10.10"</div><div class="aa">Attribut de l'objet qui suit, donc du module. Il s'étend de la ligne 1 colonne 1 à la ligne 10 colonne 10.</div></div>
+    <div class="ar key"><div class="al">attribute \top 1</div><div class="aa">Posé par <code>hierarchy</code>. Ce module est la racine : ses ports sont des broches physiques, pas des fils internes optimisables.</div></div>
+    <div class="ar"><div class="al">module \pas1</div><div class="aa">Ouverture du module. Sigil <code>\</code> : nom que vous avez écrit vous-même.</div></div>
+    <div class="ar key"><div class="al">  wire input 1 \a</div><div class="aa">Le <b>1 est l'index du port</b>, pas une largeur. Celle-ci est absente, donc implicitement d'un bit. Avec <code>input [7:0] a</code>, la ligne dirait <code>wire width 8 input 1 \a</code>.</div></div>
+    <div class="ar"><div class="al">  wire input 2 \b
+  wire output 3 \out</div><div class="aa">Ports 2 et 3, numérotés dans l'ordre de déclaration du module.</div></div>
+    <div class="ar key"><div class="al">  attribute \src "pas1.v:4.5-9.8"
+  wire $0\out[0:0]</div><div class="aa">La position couvre le bloc <code>always</code> entier, lignes 4 à 9. Nom privé : valeur intermédiaire de <code>out</code>, <b>niveau 0</b>, sur le bit <code>[0:0]</code>. C'est la valeur finale, prête à être appliquée au signal réel.</div></div>
+    <div class="ar"><div class="al">  wire $1\out[0:0]</div><div class="aa">Niveau 1 : la valeur calculée à l'intérieur de l'arbre de décision. Plus le numéro est élevé, plus on est profond dans les branchements imbriqués.</div></div>
+    <div class="ar key"><div class="al">  wire $procmux$4_CMP</div><div class="aa"><b>Aucun attribut <code>\src</code>.</b> Ce fil n'a pas de contrepartie dans votre source : <code>proc_mux</code> l'a fabriqué de toutes pièces comme sortie de comparateur.</div></div>
+    <div class="ar"><div class="al">  wire $procmux$3_Y</div><div class="aa">Le port de sortie de la cellule qui suit. Pas de <code>\src</code> non plus, pour la même raison.</div></div>
+    <div class="ar key"><div class="al">  attribute \src "pas1.v:5.12-5.13
+                 |pas1.v:5.9-8.24"</div><div class="aa">Deux positions séparées par une <b>barre verticale</b>. Yosys a fusionné l'origine de la condition — colonnes 12 à 13 de la ligne 5, c'est-à-dire le <code>a</code> dans <code>if (a)</code> — avec celle du <code>if</code> complet. La barre signale une cellule née de plusieurs fragments de source.</div></div>
+    <div class="ar key"><div class="al">  attribute \full_case 1</div><div class="aa">Posé par <code>proc_rmdead</code> : les <code>case</code> couvraient toutes les valeurs possibles. C'est cet attribut qui a permis à <code>proc_dlatch</code> d'annoncer qu'aucun verrou n'était nécessaire.</div></div>
+    <div class="ar"><div class="al">  cell $mux $procmux$3
+    parameter \WIDTH 1</div><div class="aa">Type <code>$mux</code>, instance <code>$procmux$3</code>. <b>Un seul paramètre</b>, contrairement au <code>$and</code> du chemin A : un aiguillage ne fait pas d'arithmétique, donc ni <code>A_SIGNED</code> ni <code>Y_WIDTH</code> — ses trois signaux ont forcément la même largeur.</div></div>
+    <div class="ar"><div class="al">    connect \A 1'0</div><div class="aa">Entrée A câblée sur une constante. La notation se lit : un bit valant zéro. C'est votre branche <code>else</code>.</div></div>
+    <div class="ar"><div class="al">    connect \B \b
+    connect \S $procmux$4_CMP
+    connect \Y $procmux$3_Y
+  end</div><div class="aa">B est la branche <code>if</code>, S la sélection, Y la sortie. La règle de la cellule tient en une ligne : <code>Y = S ? B : A</code>.</div></div>
+    <div class="ar"><div class="al">  connect $0\out[0:0] $1\out[0:0]</div><div class="aa">Alias au niveau module. C'est l'affectation que <code>proc_prune</code> a sortie du process, parce qu'elle n'était conditionnée par rien.</div></div>
+    <div class="ar key"><div class="al">  connect $procmux$4_CMP \a</div><div class="aa">Le comparateur devait tester <code>a == 1'1</code>. La condition se réduisant à <code>a</code> lui-même, <b>aucune cellule <code>$eq</code> n'a été nécessaire</b> : un simple alias suffit. Sur un bus multi-bits, vous verriez ici une vraie cellule.</div></div>
+    <div class="ar key"><div class="al">  connect $1\out[0:0] $procmux$3_Y
+  connect \out $procmux$3_Y
+end</div><div class="aa"><b>Regardez bien ces deux lignes.</b> <code>\out</code> pointe directement sur <code>$procmux$3_Y</code>, sans passer par <code>$1\out</code> ni <code>$0\out</code>. Ces deux fils ne sont donc plus lus par personne : ils sont déjà morts. C'est exactement ce que <code>opt_clean</code> supprimera, faisant passer le compte de sept fils à quatre.</div></div>
+  </div>
+</section>
+
+<div class="part" id="part-3">
+<span class="part-n">Partie III</span>
+<h2 class="part-t">Le matériel</h2>
+<p class="part-s">Ce que sont physiquement les objets que vous voyez apparaître.</p>
+</div>
+
+<section id="briques">
+  <h2><span class="stage">5</span>Les cinq briques</h2>
+  <p class="lede">Vous venez de voir apparaître un <code>$mux</code> dans votre dump, et la console vous a parlé de latch et de bascules. Avant d'aller plus loin, il faut savoir ce que sont ces objets — physiquement. Chaque brique est présentée quatre fois : l'image mentale, la réalité technique, ce que vous en voyez dans le RTLIL, et ce qu'elle devient dans le silicium du GateMate.</p>
+  <p>L'ordre n'est pas arbitraire. Le multiplexeur vient en premier parce que la table de vérité est bâtie avec lui, et la table de vérité vient en deuxième parce qu'elle explique où passent vos portes logiques. Le verrou et la bascule introduisent la mémoire, et le multiplieur ferme la marche.</p>
+
+  <!-- ---------- MUX ---------- -->
+  <div class="brick">
+    <div class="brick-head">
+      <svg width="76" height="62" viewBox="0 0 76 62" aria-hidden="true">
+        <path class="sym-fill" d="M26 8 L58 20 L58 42 L26 54 Z"/>
+        <line class="sym-line" x1="6" y1="18" x2="26" y2="18"/>
+        <line class="sym-line" x1="6" y1="44" x2="26" y2="44"/>
+        <line class="sym-line" x1="58" y1="31" x2="72" y2="31"/>
+        <line class="sym-accent" x1="42" y1="58" x2="42" y2="48"/>
+        <text class="sym-txt" x="30" y="22">A</text>
+        <text class="sym-txt" x="30" y="46">B</text>
+        <text class="sym-txt" x="62" y="28">Y</text>
+      </svg>
+      <div class="t">
+        <h3>Le multiplexeur</h3>
+        <p>Un aiguillage. Il choisit laquelle de ses entrées passe en sortie. Il ne retient rien.</p>
+      </div>
+    </div>
+
+    <div class="beat img">
+      <div class="beat-k">L'image</div>
+      <div class="beat-v">
+        <p>Deux tuyaux d'arrosage, un seau, et un levier. Le levier décide lequel des deux tuyaux remplit le seau. Il ne fabrique pas d'eau, il ne la stocke pas : il choisit, c'est tout. Coupez les deux tuyaux, le seau cesse de se remplir instantanément.</p>
+        <p>Un levier permet de choisir entre deux tuyaux. Deux leviers, entre quatre. Trois leviers, entre huit. À chaque levier ajouté, le nombre de tuyaux gérables double.</p>
+      </div>
+    </div>
+    <div class="beat">
+      <div class="beat-k">En vrai</div>
+      <div class="beat-v">
+        <p>Un multiplexeur 2 vers 1 a deux entrées de données, une entrée de sélection, une sortie. Sa règle tient en une ligne : <code>Y = S ? B : A</code>. Si le bit de sélection vaut 1, c'est B qui sort ; sinon c'est A.</p>
+        <p>Le point qui compte pour la suite : <strong>un multiplexeur n'a aucune mémoire</strong>. Sa sortie ne dépend que de ce qui est présent à ses entrées, à l'instant présent. C'est de la logique dite combinatoire, par opposition à séquentielle.</p>
+        <p>Une chaîne <code>if / else if / else if / else</code> devient une cascade de multiplexeurs, la sortie de l'un alimentant l'entrée de l'autre. Plus la chaîne est longue, plus le signal traverse de multiplexeurs, plus il met de temps. C'est la raison concrète pour laquelle un <code>case</code> bien écrit est souvent plus rapide qu'une longue chaîne de <code>if</code>.</p>
+      </div>
+    </div>
+    <div class="beat">
+      <div class="beat-k">Dans le dump</div>
+      <div class="beat-v">
+        <p>C'est exactement la cellule que <code>proc_mux</code> a fabriquée à partir de votre <code>if/else</code> :</p>
+        <pre>cell $mux $procmux$3
+  parameter \WIDTH 1
+  connect \A 1'0        <span class="tok-str">← la branche else</span>
+  connect \B \b         <span class="tok-str">← la branche if</span>
+  connect \S $procmux$4_CMP
+  connect \Y $procmux$3_Y
+end</pre>
+        <p>Le paramètre <code>WIDTH</code> vaut 1 ici, mais un multiplexeur RTLIL est générique : avec <code>WIDTH 8</code>, la même cellule aiguille deux bus de huit bits d'un coup.</p>
+      </div>
+    </div>
+    <div class="beat chip">
+      <div class="beat-k">Sur la puce</div>
+      <div class="beat-v">
+        <p>Ici le GateMate a une particularité. Sa cellule de base, le CPE — Cologne Programmable Element — peut se configurer <strong>nativement en multiplexeur 4 entrées</strong>, sans passer par une table de correspondance. Les multiplexeurs ne coûtent donc presque rien sur cette architecture.</p>
+        <p>C'est la raison d'être des primitives <code>CC_MX2</code> et <code>CC_MX4</code>. Une nuance compte ici, et elle explique une ligne de votre commande : la bibliothèque officielle des primitives ne connaît que ces deux-là. Il n'existe <strong>pas de <code>CC_MX8</code> dans le silicium</strong>, et la documentation Cologne Chip marque <code>-nomx8</code> comme <strong>obligatoire</strong> — au même titre que <code>-luttree</code> — pour le flot nextpnr. Ce n'est donc pas un réglage d'optimisation mais une contrainte du flot.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ---------- LUT ---------- -->
+  <div class="brick">
+    <div class="brick-head">
+      <svg width="76" height="62" viewBox="0 0 76 62" aria-hidden="true">
+        <rect class="sym-fill" x="6" y="8" width="18" height="46"/>
+        <line class="sym-line" x1="6" y1="19.5" x2="24" y2="19.5"/>
+        <line class="sym-line" x1="6" y1="31" x2="24" y2="31"/>
+        <line class="sym-line" x1="6" y1="42.5" x2="24" y2="42.5"/>
+        <text class="sym-txt" x="11" y="17">0</text>
+        <text class="sym-txt" x="11" y="28">0</text>
+        <text class="sym-txt" x="11" y="40">0</text>
+        <text class="sym-txt" x="11" y="51">1</text>
+        <path class="sym-fill" d="M34 14 L52 22 L52 40 L34 48 Z"/>
+        <line class="sym-line" x1="24" y1="31" x2="34" y2="31"/>
+        <line class="sym-line" x1="52" y1="31" x2="70" y2="31"/>
+        <line class="sym-accent" x1="43" y1="56" x2="43" y2="46"/>
+      </svg>
+      <div class="t">
+        <h3>La table de vérité</h3>
+        <p>Des tiroirs numérotés, remplis à l'avance. Le circuit ne calcule pas : il va chercher la réponse.</p>
+      </div>
+    </div>
+
+    <div class="beat img">
+      <div class="beat-k">L'image</div>
+      <div class="beat-v">
+        <p>Imaginez quatre tiroirs numérotés 0, 1, 2 et 3. Dans chacun, quelqu'un a écrit à l'avance un seul chiffre : 0 ou 1. Vous avez deux interrupteurs, et leur combinaison donne un numéro de tiroir. Vous ouvrez ce tiroir, vous lisez ce qui est écrit, c'est votre réponse.</p>
+        <p>Personne n'a calculé quoi que ce soit. Tout était déjà écrit. Et remarquez le mécanisme qui va chercher le bon tiroir : <strong>c'est exactement le multiplexeur de la brique précédente</strong>. Une table de vérité n'est rien d'autre qu'un aiguillage branché sur de la mémoire.</p>
+        <p>L'autre image, si vous préférez : un enfant qui a appris sa table de multiplication par cœur ne calcule pas 7 × 8. Il se souvient. Une table de vérité fait pareil, mais pour des fonctions logiques, et elle a mémorisé <em>toutes</em> les réponses possibles.</p>
+      </div>
+    </div>
+    <div class="beat">
+      <div class="beat-k">En vrai</div>
+      <div class="beat-v">
+        <p>Une LUT à n entrées est un multiplexeur à 2ⁿ entrées dont les données sont des cellules de mémoire. Ce ne sont pas des registres — ils n'attendent aucune horloge — mais des <strong>cellules SRAM de configuration</strong>, remplies une fois pour toutes au chargement du bitstream et inchangées ensuite.</p>
+        <p>Les entrées logiques ne sont pas des données : ce sont des <strong>adresses</strong>. Elles désignent quelle case lire.</p>
+        <p>La conséquence est radicale, et c'est le point que tout le monde met du temps à admettre : <strong>il n'y a aucune porte ET, OU ou OU-exclusif dans la matrice logique d'un FPGA.</strong> Aucune. Quand vous écrivez <code>assign s = a &amp; b;</code>, aucune porte ET physique n'est utilisée. Une LUT2 est configurée avec le contenu <code>0, 0, 0, 1</code> — et elle se comporte exactement comme un ET.</p>
+        <p>Changez le contenu en <code>0, 1, 1, 1</code> : la même LUT devient un OU. En <code>0, 1, 1, 0</code> : un OU-exclusif. Même silicium, même emplacement, quatre bits de configuration différents. C'est toute la magie du FPGA en une phrase.</p>
+      </div>
+    </div>
+    <div class="beat">
+      <div class="beat-k">Dans le dump</div>
+      <div class="beat-v">
+        <p>Voilà pourquoi la disparition des portes a une date précise dans le flot — et pourquoi vous pouvez l'observer. Pendant presque toute la synthèse, vos portes existent bel et bien :</p>
+        <pre>cell $and $and$pas1.v:4$1      <span class="tok-str">← après read_verilog : opérateur RTL</span>
+cell $_AND_ $auto$simplemap$5  <span class="tok-str">← après techmap : porte à 1 bit</span></pre>
+        <p>Puis vient l'étape <code>map_luts</code>, et elles fondent :</p>
+        <pre>cell CC_LUT2 $auto$lut_tree_map$9
+  parameter \INIT 4'b1000       <span class="tok-str">← la table de vérité du ET</span>
+  connect \I0 \a
+  connect \I1 \b
+  connect \O  \out
+end</pre>
+        <p>Lisez le paramètre <code>INIT</code> de droite à gauche, c'est l'ordre des adresses : case 00 vaut 0, case 01 vaut 0, case 10 vaut 0, case 11 vaut 1. C'est la table de vérité du ET, écrite en quatre bits.</p>
+        <p>Vos <code>&amp;</code> et vos <code>|</code> ne sont donc pas effacés dès la lecture. Ils traversent tout le flot sous forme de cellules, et ne disparaissent qu'à l'avant-dernière étape. C'est une expérience que vous pouvez faire : arrêtez-vous avec <code>-run :map_luts</code>, comptez vos portes, puis relancez jusqu'au bout et constatez qu'il n'en reste aucune.</p>
+      </div>
+    </div>
+    <div class="beat chip">
+      <div class="beat-k">Sur la puce</div>
+      <div class="beat-v">
+        <p>Le GateMate ne bâtit pas ses fonctions sur des LUT4 comme la plupart des FPGA, mais sur des <strong>LUT2</strong> assemblées en arbres. Un <code>CC_L2T4</code> est un arbre de trois LUT2 réalisant une fonction à 4 entrées, et un CPE en loge <strong>deux indépendants</strong>. Combiné à un <code>CC_L2T5</code>, on atteint l'arbre à 8 entrées qui occupe le CPE entier.</p>
+        <p>Une question naturelle se pose alors : si la LUT sait tout imiter, pourquoi le CPE contient-il autre chose ? Parce que trois choses lui échappent.</p>
+        <p><strong>Le temps.</strong> Une LUT lit sa mémoire instantanément — c'est du combinatoire pur, sans mémoire d'état. Pour retenir une valeur d'un cycle à l'autre, il faut de vraies bascules : les deux <code>CC_DFF</code> placés juste derrière.</p>
+        <p><strong>La retenue.</strong> Additionner avec des LUT coûte cher et propage lentement la retenue. D'où le <code>CC_ADDF</code> et son chemin de retenue rapide, câblé entre CPEs voisins.</p>
+        <p><strong>Les motifs trop fréquents.</strong> Ici le GateMate va plus loin que l'explication habituelle. L'aiguillage est si courant qu'il a ses propres primitives, <code>CC_MX2</code> et <code>CC_MX4</code>, réalisées nativement sans consommer de table. Et chaque CPE embarque un multiplieur 2×2 chaînable — c'est ce qui permet à cette architecture de se passer entièrement de blocs DSP.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ---------- LATCH ---------- -->
+  <div class="brick">
+    <div class="brick-head">
+      <svg width="76" height="62" viewBox="0 0 76 62" aria-hidden="true">
+        <rect class="sym-fill" x="22" y="10" width="34" height="42"/>
+        <line class="sym-line" x1="6" y1="22" x2="22" y2="22"/>
+        <line class="sym-line" x1="6" y1="40" x2="22" y2="40"/>
+        <line class="sym-line" x1="56" y1="22" x2="72" y2="22"/>
+        <text class="sym-txt" x="25" y="26">D</text>
+        <text class="sym-txt" x="25" y="44">E</text>
+        <text class="sym-txt" x="48" y="26">Q</text>
+      </svg>
+      <div class="t">
+        <h3>Le verrou</h3>
+        <p>Une porte qu'on tient ouverte. Tant qu'on la tient, tout passe. Dès qu'on lâche, ce qui était là reste figé.</p>
+      </div>
+    </div>
+
+    <div class="beat img">
+      <div class="beat-k">L'image</div>
+      <div class="beat-v">
+        <p>Vous tenez une porte ouverte avec la main. Tant que vous la tenez, les gens traversent librement : ce qu'il y a de l'autre côté est exactement ce qu'il y a de ce côté. On dit que le verrou est <em>transparent</em>. Au moment où vous lâchez, la porte se referme et celui qui était à l'intérieur y reste — indéfiniment, jusqu'à ce que vous rouvriez.</p>
+        <p>Ce qui compte, c'est que votre main <em>tient</em> la porte, pas le geste de l'avoir saisie. Le verrou réagit à un état, pas à un instant.</p>
+      </div>
+    </div>
+    <div class="beat">
+      <div class="beat-k">En vrai</div>
+      <div class="beat-v">
+        <p>Un verrou D a une entrée de donnée, une entrée de validation et une sortie. Quand la validation est active, la sortie suit l'entrée en permanence. Quand elle retombe, la sortie conserve la dernière valeur vue. C'est le premier élément de cette liste qui possède une <strong>mémoire</strong>.</p>
+        <p>On dit qu'il est sensible au <em>niveau</em> : c'est la valeur haute ou basse de la validation qui commande, pas le moment où elle change. C'est précisément ce qui le rend problématique. Pendant toute la durée où il est transparent, un signal peut le traverser de part en part et continuer sa course dans le circuit — ce qui rend l'analyse temporelle très difficile. Les concepteurs veulent que tout change à un instant net, pas pendant une fenêtre.</p>
+      </div>
+    </div>
+    <div class="beat">
+      <div class="beat-k">Dans le dump</div>
+      <div class="beat-v">
+        <p>C'est ici que se joue le fameux verrou inféré par accident. Écrivez un <code>always</code> combinatoire sans couvrir tous les cas :</p>
+        <pre>always @(*) begin
+  if (a) out = b;     <span class="tok-str">← et si a vaut 0 ?</span>
+end</pre>
+        <p>Verilog répond : « <code>out</code> ne change pas ». Or pour ne pas changer, il faut se souvenir. Yosys est donc <strong>obligé</strong> de construire un verrou — vous ne l'aviez pas demandé, mais vous l'avez décrit.</p>
+        <p>Sur votre code actuel, le <code>else</code> couvrait tous les cas. <code>proc_rmdead</code> a posé l'attribut <code>full_case</code>, et <code>proc_dlatch</code> a pu annoncer <code>No latch inferred</code>. Retirez le <code>else</code> et relancez : cette même ligne vous dira l'inverse, et une cellule <code>$dlatch</code> apparaîtra.</p>
+      </div>
+    </div>
+    <div class="beat chip">
+      <div class="beat-k">Sur la puce</div>
+      <div class="beat-v">
+        <p>Chaque CPE du GateMate contient deux registres, et chacun peut se configurer indifféremment en verrou <strong>ou</strong> en bascule. Un verrou ne coûte donc pas un gramme de silicium de plus.</p>
+        <p>Le coût est ailleurs, et il est bien réel : un verrou rend l'analyse temporelle ambiguë, et la fréquence maximale que vous annoncera l'outil de placement-routage en devient peu fiable. C'est pour cette raison que l'apparition d'un <code>$dlatch</code> non voulu doit être traitée comme un défaut de votre code, jamais comme un détail.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ---------- FLIP-FLOP ---------- -->
+  <div class="brick">
+    <div class="brick-head">
+      <svg width="76" height="62" viewBox="0 0 76 62" aria-hidden="true">
+        <rect class="sym-fill" x="22" y="10" width="34" height="42"/>
+        <line class="sym-line" x1="6" y1="22" x2="22" y2="22"/>
+        <line class="sym-line" x1="6" y1="40" x2="22" y2="40"/>
+        <line class="sym-line" x1="56" y1="22" x2="72" y2="22"/>
+        <polyline class="sym-accent" points="22,35 29,40 22,45"/>
+        <text class="sym-txt" x="25" y="26">D</text>
+        <text class="sym-txt" x="48" y="26">Q</text>
+      </svg>
+      <div class="t">
+        <h3>La bascule</h3>
+        <p>Un appareil photo. Au déclic exact de l'horloge, elle prend un cliché et le garde jusqu'au suivant.</p>
+      </div>
+    </div>
+
+    <div class="beat img">
+      <div class="beat-k">L'image</div>
+      <div class="beat-v">
+        <p>Reprenez le verrou : une porte qu'on tient ouverte. Maintenant imaginez un sas, avec deux portes qui ne sont jamais ouvertes en même temps. La première s'ouvre, quelqu'un entre dans le sas. La première se referme, la seconde s'ouvre, la personne ressort. Résultat : le passage n'a lieu qu'à un instant précis, celui du basculement.</p>
+        <p>Ce n'est pas une métaphore approximative : une bascule sur front est <strong>littéralement construite avec deux verrous</strong> montés en cascade, appelés maître et esclave. Vous savez donc déjà comment elle fonctionne.</p>
+        <p>L'autre image, plus parlante pour l'usage : le verrou est une fenêtre, la bascule est un appareil photo. Entre deux déclics, l'image affichée ne bouge pas, quoi qu'il se passe devant l'objectif.</p>
+      </div>
+    </div>
+    <div class="beat">
+      <div class="beat-k">En vrai</div>
+      <div class="beat-v">
+        <p>Une bascule D capture la valeur de son entrée à l'instant du front d'horloge — montant ou descendant selon le type — et la maintient en sortie jusqu'au front suivant. Elle est sensible au <em>front</em>, pas au niveau. C'est la différence entière avec le verrou.</p>
+        <p>Deux contraintes de temps l'accompagnent, et l'analogie du bus les rend évidentes. Pour monter, il faut être devant la porte un court instant <strong>avant</strong> qu'elle ne se ferme : c'est le temps de préparation. Et il faut rester immobile un court instant <strong>après</strong> : c'est le temps de maintien. Arrivez en retard ou bougez au mauvais moment, et la bascule capture une valeur indécise — l'équivalent d'une photo prise pendant un clignement d'œil.</p>
+        <p>C'est la bascule qui rend le temps discret dans un circuit. Tout ce qui se trouve entre deux bascules est de la logique combinatoire, et dispose d'exactement une période d'horloge pour se stabiliser. Le chemin le plus lent entre deux bascules fixe la fréquence maximale de tout le circuit — c'est ce nombre que vous verrez s'afficher après le placement-routage.</p>
+      </div>
+    </div>
+    <div class="beat">
+      <div class="beat-k">Dans le dump</div>
+      <div class="beat-v">
+        <p>Souvenez-vous de la ligne <code>sync always</code> dans votre process. Remplacez la liste de sensibilité par une horloge et elle devient :</p>
+        <pre>process $proc$pas1.v:4$1
+  ...
+  sync posedge \clk
+    update \out $0\out[0:0]
+end</pre>
+        <p>À partir de là, <code>proc_dff</code> — qui affichait un compteur vide jusqu'ici — se met au travail et produit une cellule <code>$dff</code> avec ses ports <code>CLK</code>, <code>D</code> et <code>Q</code>. Le process disparaît comme avant.</p>
+        <p>Une seule ligne du dump décide donc si votre circuit est combinatoire ou séquentiel. Pas la structure du <code>switch</code>, pas le nombre de <code>case</code> : la ligne <code>sync</code>.</p>
+        <p>Un <code>reg [7:0]</code> ne change rien au principe — c'est simplement un bus de huit bascules partageant la même horloge, et RTLIL le représente par une seule cellule <code>$dff</code> de largeur 8.</p>
+      </div>
+    </div>
+    <div class="beat chip">
+      <div class="beat-k">Sur la puce</div>
+      <div class="beat-v">
+        <p>Chaque CPE contient deux bascules. Sur un GateMate A1, avec ses 20 480 CPEs, cela fait 40 960 bascules disponibles — et autant de LUT à quatre entrées si vous coupez chaque CPE en deux, ou 20 480 arbres de LUT à huit entrées si vous les utilisez d'un bloc.</p>
+        <p>Les modèles A2 et A4 doublent puis quadruplent ces ressources tout en restant compatibles broche à broche avec le A1. Le même code, la même contrainte de pins, un FPGA plus grand.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ---------- DSP ---------- -->
+  <div class="brick">
+    <div class="brick-head">
+      <svg width="76" height="62" viewBox="0 0 76 62" aria-hidden="true">
+        <rect class="sym-fill" x="18" y="8" width="26" height="26"/>
+        <circle class="sym-fill" cx="56" cy="42" r="11"/>
+        <line class="sym-line" x1="4" y1="15" x2="18" y2="15"/>
+        <line class="sym-line" x1="4" y1="27" x2="18" y2="27"/>
+        <path class="sym-line" d="M44 21 L56 21 L56 31"/>
+        <line class="sym-line" x1="56" y1="53" x2="56" y2="58"/>
+        <line class="sym-accent" x1="67" y1="42" x2="73" y2="42"/>
+        <text class="sym-txt" x="27" y="25">×</text>
+        <text class="sym-txt" x="52" y="46">+</text>
+      </svg>
+      <div class="t">
+        <h3>Le multiplieur et le bloc DSP</h3>
+        <p>Une calculatrice câblée dans la puce, pour ne pas refaire les multiplications à la main.</p>
+      </div>
+    </div>
+
+    <div class="beat img">
+      <div class="beat-k">L'image</div>
+      <div class="beat-v">
+        <p>Poser une addition sur papier : on additionne colonne par colonne, de droite à gauche, en propageant la retenue. Le matériel fait exactement pareil — une petite cellule par colonne, la retenue passant à la voisine. C'est pour cela qu'additionner deux nombres de 32 bits prend plus de temps que deux nombres de 4 bits : la retenue doit traverser toute la largeur.</p>
+        <p>Poser une multiplication, c'est une série d'additions décalées. Beaucoup plus de travail. Construire cela avec de la logique ordinaire coûte énormément de place.</p>
+        <p>D'où l'idée du bloc DSP : au lieu de refaire la multiplication à la main à chaque fois, on soude une petite calculatrice directement dans la puce. Rapide, compacte — mais de taille fixe et à un emplacement fixe, comme une calculatrice vissée à un endroit précis de la salle.</p>
+      </div>
+    </div>
+    <div class="beat">
+      <div class="beat-k">En vrai</div>
+      <div class="beat-v">
+        <p>DSP veut dire traitement numérique du signal. Sur la plupart des FPGA, un bloc DSP est un multiplieur câblé — souvent 18 bits par 18 bits — suivi d'un accumulateur, c'est-à-dire d'un additionneur qui garde un total courant.</p>
+        <p>L'opération qu'il exécute s'appelle la multiplication-accumulation : multiplier deux nombres, ajouter le résultat à un total, recommencer. C'est le cœur des filtres numériques, et c'est aussi exactement ce que calcule un neurone dans un réseau de neurones — la somme des entrées multipliées par leurs poids. D'où l'importance de ces blocs dès qu'on fait du calcul embarqué.</p>
+      </div>
+    </div>
+    <div class="beat">
+      <div class="beat-k">Dans le dump</div>
+      <div class="beat-v">
+        <p>Un simple <code>assign p = a * b;</code> produit une cellule générique :</p>
+        <pre>cell $mul $mul$design.v:12$1
+  parameter \A_WIDTH 8
+  parameter \B_WIDTH 8
+  parameter \Y_WIDTH 16
+  ...
+end</pre>
+        <p>À ce stade, rien n'indique si cela finira dans un bloc câblé ou dans un tapis de portes logiques. C'est le mapping technologique qui tranche, et il tranche différemment selon la puce visée. Une addition, elle, donne un <code>$add</code>, que <code>techmap</code> éclate ensuite en additionneurs complets élémentaires.</p>
+      </div>
+    </div>
+    <div class="beat">
+      <div class="beat-k">Ailleurs</div>
+      <div class="beat-v">
+        <p>Pour mesurer ce que fait le GateMate, il faut savoir ce que font les autres. Presque tous les FPGA du marché posent dans leur silicium un nombre fixe de blocs DSP, à des emplacements fixes, avec une taille de multiplieur fixe.</p>
+        <p>Le schéma est remarquablement stable d'un fabricant à l'autre : un pré-additionneur, un multiplieur, un post-additionneur de large taille qui sert d'accumulateur, et des registres de pipeline entre les étages. Le DSP48 de Xilinx calcule ainsi <code>P = (A + D) × B + C</code> — une seule expression qui couvre la quasi-totalité des besoins en filtrage.</p>
+        <div class="tbl-scroll">
+        <table>
+          <thead><tr><th>Famille</th><th>Nom du bloc</th><th>Multiplieur</th><th>Accumulateur</th></tr></thead>
+          <tbody>
+            <tr><td>Xilinx Virtex-4</td><td>DSP48</td><td>18 × 18</td><td>48 bits</td></tr>
+            <tr><td>Xilinx 7-Series, Artix, Spartan-7, Zynq-7000</td><td>DSP48E1</td><td>25 × 18 avec pré-additionneur</td><td>48 bits</td></tr>
+            <tr><td>Xilinx UltraScale et UltraScale+</td><td>DSP48E2</td><td>27 × 18 avec pré-additionneur</td><td>48 bits</td></tr>
+            <tr><td>Intel Cyclone V</td><td>Bloc DSP à précision variable</td><td>un 27 × 27, ou deux 18 × 18, ou trois 9 × 9</td><td>large, configurable</td></tr>
+            <tr><td>Intel Stratix 10</td><td>Bloc DSP à précision variable</td><td>entier, plus flottant câblé</td><td>idem</td></tr>
+            <tr><td>Lattice ECP5</td><td>sysDSP</td><td>deux 18 × 18, deux pré-additionneurs</td><td>ALU 54 bits</td></tr>
+            <tr><td>Lattice iCE40 UltraPlus</td><td>SB_MAC16</td><td>16 × 16</td><td>32 bits</td></tr>
+            <tr><td>Cologne Chip GateMate</td><td><em>aucun bloc dédié</em></td><td>2 × 2 par CPE, chaînables</td><td>construit en CPEs</td></tr>
+          </tbody>
+        </table>
+        </div>
+        <p>Deux observations pour votre pratique. D'abord, la largeur de 18 bits revient partout : elle vient de l'audio et du traitement d'image, et c'est une des raisons pour lesquelles tant de code embarqué quantifie sur 16 ou 18 bits plutôt que 32. Ensuite, le nombre de blocs DSP est <strong>la première ressource à saturer</strong> sur un projet de calcul, bien avant les LUT. Un traitement qui réclame quatre cents multiplications simultanées sur une puce qui en offre quatre-vingts devra être découpé en tranches, quelle que soit la place restante en logique.</p>
+        <p>Côté Yosys, l'inférence n'est pas toujours automatique. Sur iCE40 par exemple, il faut la demander explicitement avec <code>synth_ice40 -dsp</code>, sans quoi vos multiplications finissent en tapis de LUT sans qu'aucun message ne vous prévienne. Prenez l'habitude de vérifier le décompte de cellules après synthèse plutôt que de le supposer.</p>
+      </div>
+    </div>
+    <div class="beat chip">
+      <div class="beat-k">Sur la puce</div>
+      <div class="beat-v">
+        <p>Et c'est là que le GateMate fait un choix inhabituel, qu'il faut connaître avant de dimensionner un projet de calcul : <strong>il n'a aucun bloc DSP câblé</strong>. Pas de multiplieur 18×18 posé à un endroit de la puce. Pas de processeur durci non plus.</p>
+        <p>À la place, chaque CPE embarque un minuscule multiplieur 2 bits par 2 bits, relié directement à ses voisins par un chemin de routage rapide. Reprenez l'image de la salle : au lieu d'une grosse calculatrice vissée à un endroit, chaque bureau en possède une toute petite, et vous alignez autant de bureaux que nécessaire, là où vous voulez.</p>
+        <p>Le compromis se lit dans les deux sens. Vous pouvez construire un multiplieur de n'importe quelle taille, à n'importe quel endroit de la puce, sans être limité par un nombre fixe de blocs — un 18×8 bits ici, un 8×8 là. En contrepartie, vous payez en CPEs, et le chemin critique dépend de la largeur de l'opérande. Des étages de registres optionnels, pris sur les bascules des CPEs, s'insèrent en entrée et en sortie pour remonter la fréquence.</p>
+        <p>Yosys reconnaît le motif tout seul et produit la primitive <code>CC_MULT</code>, paramétrée par les largeurs. Les additions donnent des <code>CC_ADDF</code>. Le placement-routage se charge ensuite d'aligner physiquement la rangée de CPEs.</p>
+      </div>
+    </div>
+  </div>
+
+  <h3>Le tableau de correspondance</h3>
+  <p>Trois colonnes, trois niveaux d'abstraction. C'est ce trajet que vous suivez à chaque synthèse.</p>
+  <div class="tbl-scroll">
+  <table>
+    <thead><tr><th>Ce que vous écrivez</th><th>Cellule RTLIL</th><th>Ce que devient le silicium</th></tr></thead>
+    <tbody>
+      <tr><td><code>a ? b : c</code> ou <code>if/else</code></td><td><code>$mux</code></td><td><code>CC_MX2</code> ou <code>CC_MX4</code>, natifs au CPE</td></tr>
+      <tr><td><code>always @(*)</code> incomplet</td><td><code>$dlatch</code></td><td><code>CC_DLT</code>, le verrou — à éviter</td></tr>
+      <tr><td><code>always @(posedge clk)</code></td><td><code>$dff</code></td><td><code>CC_DFF</code>, deux par CPE s'ils partagent horloge, validation et reset</td></tr>
+      <tr><td><code>a &amp; b</code>, <code>a | b</code>, logique diverse</td><td><code>$and</code>, <code>$or</code>, puis <code>$_AND_</code></td><td><code>CC_LUT2</code>, <code>CC_L2T4</code>, <code>CC_L2T5</code> — la porte disparaît, seul son <code>INIT</code> subsiste</td></tr>
+      <tr><td><code>~a</code></td><td><code>$not</code>, puis <code>$__CC_NOT</code></td><td>Absorbé dans la LUT voisine, coût nul</td></tr>
+      <tr><td><code>a + b</code></td><td><code>$add</code></td><td><code>CC_ADDF</code>, additionneurs chaînés par la retenue rapide</td></tr>
+      <tr><td><code>a * b</code></td><td><code>$mul</code></td><td><code>CC_MULT</code>, rangée de multiplieurs 2×2 chaînés</td></tr>
+      <tr><td><code>reg [7:0] m [0:255]</code></td><td><code>$mem_v2</code></td><td><code>CC_BRAM_20K</code> ou <code>CC_BRAM_40K</code></td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <div class="aside">
+    <p><b>Vérifiez plutôt que de croire.</b> Les noms exacts des primitives évoluent avec les versions. Deux commandes vous donnent la vérité de votre installation, et elles valent mieux que n'importe quel tableau : <code>help synth_gatemate</code> liste les étapes réelles du flot, et le dossier <code>share/yosys/gatemate/</code> contient les fichiers de mapping où sont écrites, en Verilog lisible, les règles de correspondance elles-mêmes.</p>
+    <p>Le dossier GateMate ne contient pas un fichier de mapping mais une dizaine, un par famille de cellules : <code>mux_map.v</code>, <code>reg_map.v</code>, <code>arith_map.v</code>, <code>mul_map.v</code>, <code>brams_map.v</code>, <code>lut_map.v</code>. C'est le meilleur exercice de cette page : ouvrez <code>mux_map.v</code> et retrouvez-y la règle qui transforme un multiplexeur en cellule GateMate. Vous lirez la traduction dans sa langue d'origine.</p>
+  </div>
+</section>
+
+<div class="part" id="part-4">
+<span class="part-n">Partie IV</span>
+<h2 class="part-t">Le flot</h2>
+<p class="part-s">Les passes, puis la descente jusqu'aux primitives GateMate.</p>
+</div>
+
+<section id="pipeline">
+  <h2><span class="stage">6</span>Le pipeline, station par station</h2>
+  <p class="lede">Chaque passe modifie le RTLIL <em>en place</em>. Il n'y a pas de fichier intermédiaire : un dump n'est qu'un instantané. La progression ci-dessous marque ce que vous avez déjà observé.</p>
+
+  <ol class="rail">
+    <li class="done">
+      <h3><code>read_verilog</code><span class="tag">observé</span></h3>
+      <p>Texte, puis AST, puis RTLIL — deux conversions en une commande. Un <code>assign</code> devient une cellule immédiatement ; un <code>always</code> devient un <code>process</code>.</p>
+      <div class="obs">À surveiller : la présence ou l'absence de la ligne <code>processes</code> dans <code>stat</code>. C'est elle qui vous dit quel chemin vous avez pris.</div>
+    </li>
+    <li class="done">
+      <h3><code>hierarchy -check -top</code><span class="tag">observé</span></h3>
+      <p>Désigne la racine du design, résout les instances de sous-modules, propage les paramètres, élague les modules inutilisés. Sur un module unique, elle semble ne rien faire.</p>
+      <div class="obs">Elle fait pourtant deux choses invisibles dans <code>stat</code> : elle pose <code>attribute \top 1</code> et retire <code>\cells_not_processed</code>. Sans l'attribut <code>\top</code>, les passes suivantes ne savent pas quels ports préserver. L'option <code>-check</code> transforme un module introuvable en erreur fatale au lieu d'une boîte noire silencieuse.</div>
+    </li>
+    <li class="done">
+      <h3><code>proc</code><span class="tag">observé</span></h3>
+      <p>Ce n'est pas une passe mais un enchaînement de douze sous-passes, toutes appelables séparément. Elle ne touche qu'aux objets <code>process</code>.</p>
+      <div class="obs">Sur un design sans <code>always</code>, les douze compteurs restent à zéro et le RTLIL est inchangé. C'est le meilleur moyen de comprendre son périmètre exact.</div>
+    </li>
+    <li class="next">
+      <h3><code>opt</code><span class="tag">à faire</span></h3>
+      <p>Nettoyage et repli de constantes. Les alias en cascade laissés par <code>proc</code> devraient fondre. Question ouverte à vérifier vous-même : est-ce que <code>opt</code> transforme le <code>$mux</code> en <code>$and</code>, ou attend-il ABC ?</p>
+      <div class="obs">Comme <code>proc</code>, <code>opt</code> est un macro : <code>opt_expr</code>, <code>opt_merge</code>, <code>opt_dff</code>, <code>opt_clean</code>… Lancez-les une par une pour isoler l'effet de chacune.</div>
+    </li>
+    <li>
+      <h3><code>fsm</code> puis <code>memory</code></h3>
+      <p>Extraction des automates à états et conversion des tableaux de registres en cellules mémoire. Elles n'ont d'effet que si votre design en contient — d'où l'intérêt d'enrichir progressivement le fichier de test.</p>
+    </li>
+    <li>
+      <h3><code>techmap</code></h3>
+      <p>Éclate les cellules complexes (<code>$add</code>, <code>$eq</code>) en portes élémentaires (<code>$_AND_</code>, <code>$_XOR_</code>, <code>$_MUX_</code>). Notez le passage de <code>$nom</code> à <code>$_NOM_</code> : c'est le signe qu'on descend au niveau porte.</p>
+    </li>
+    <li>
+      <h3><code>synth_gatemate</code></h3>
+      <p>Le mapping technologique. Les types de cellules perdent leur <code>$</code> initial : <code>CC_LUT2</code>, <code>CC_DFF</code>, <code>CC_BRAM_20K</code>. Tant que vous voyez des <code>$</code>, vous êtes encore au niveau abstrait.</p>
+      <div class="obs">Elle remplace tout ce qui précède, <code>hierarchy</code> compris : sa première étape charge les bibliothèques GateMate puis appelle <code>hierarchy -check -top</code> elle-même. Décortiquez-la avec <code>-run</code> et les quatorze labels réels, listés plus bas, section 7.</div>
+    </li>
+  </ol>
+
+  <h3>Les douze sous-passes de <code>proc</code></h3>
+  <p>Trois seulement ont agi sur votre chemin B. Savoir laquelle fait quoi vous permet de lire la console comme un diagnostic.</p>
+  <div class="tbl-scroll">
+  <table>
+    <thead><tr><th>Sous-passe</th><th>Rôle</th><th>Sur pas1.v</th></tr></thead>
+    <tbody>
+      <tr><td><code>proc_clean</code></td><td>Supprime les branches vides de l'arbre de décision.</td><td>—</td></tr>
+      <tr><td><code>proc_rmdead</code></td><td>Élimine les branches inatteignables et marque les switch complets.</td><td><code>full_case</code> posé</td></tr>
+      <tr><td><code>proc_prune</code></td><td>Retire les affectations écrasées ; promeut les triviales en <code>connect</code>.</td><td>1 promotion</td></tr>
+      <tr><td><code>proc_init</code></td><td>Extrait les valeurs initiales en attribut <code>\init</code>.</td><td>—</td></tr>
+      <tr><td><code>proc_arst</code></td><td>Détecte les resets asynchrones dans la liste de sensibilité.</td><td>—</td></tr>
+      <tr><td><code>proc_rom</code></td><td>Convertit les gros <code>case</code> constants en ROM.</td><td>—</td></tr>
+      <tr><td><code>proc_mux</code></td><td><strong>Convertit l'arbre de décision en multiplexeurs.</strong></td><td>1 décodeur créé</td></tr>
+      <tr><td><code>proc_dlatch</code></td><td>Infère des verrous si la logique combinatoire est incomplète.</td><td>aucun verrou</td></tr>
+      <tr><td><code>proc_dff</code></td><td><strong>Crée les bascules</strong> à partir des synchronisations sur front.</td><td>—</td></tr>
+      <tr><td><code>proc_memwr</code></td><td>Transforme les écritures mémoire en cellules.</td><td>—</td></tr>
+      <tr><td><code>proc_clean</code></td><td>Nettoyage final ; supprime le process devenu vide.</td><td>process supprimé</td></tr>
+      <tr><td><code>opt_expr</code></td><td>Repli des constantes.</td><td>—</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <div class="aside">
+    <p><b>Le piège du latch inféré.</b> Sur votre <code>always @(*)</code>, <code>proc_rmdead</code> a constaté que vos deux <code>case</code> couvrent toutes les valeurs de <code>a</code> et a posé <code>full_case</code>. Conséquence : aucune valeur à mémoriser, donc <code>proc_dlatch</code> annonce explicitement <code>No latch inferred</code>.</p>
+    <p>Retirez le <code>else</code> de <code>pas1.v</code> et relancez : cette même ligne vous dira qu'un <code>$dlatch</code> a été créé. Vous aurez sous les yeux l'endroit exact où Yosys prend la décision que tout concepteur RTL redoute.</p>
+  </div>
+</section>
+
+<section id="gatemate">
+  <h2><span class="stage">7</span>Du RTLIL au bitstream</h2>
+  <p class="lede">Une fois le RTLIL compris, le reste du flot devient lisible : chaque outil consomme la sortie du précédent dans un format que vous savez maintenant inspecter.</p>
+
+  <h3>Trois niveaux de script, et ils ne se cumulent pas</h3>
+  <p>Une confusion fréquente mérite d'être levée avant tout. Il existe trois manières d'écrire un script de synthèse, et chacune <strong>remplace</strong> la précédente au lieu de s'y ajouter.</p>
+  <div class="tbl-scroll">
+  <table>
+    <thead><tr><th>Script</th><th>Cible</th><th>Sortie</th><th>Quand</th></tr></thead>
+    <tbody>
+      <tr><td>Manuel : <code>proc; opt; fsm; opt; memory; opt; techmap</code></td><td>aucune</td><td>Netlist générique, cellules en <code>$</code></td><td>Apprentissage, flot sur mesure. Ce que nous faisons depuis le début.</td></tr>
+      <tr><td><code>synth -top</code></td><td>aucune</td><td>Netlist générique, plus complète</td><td>Le script manuel empaqueté. Toujours aucune cellule de fabricant.</td></tr>
+      <tr><td><code>synth_gatemate -top</code></td><td>GateMate</td><td>Primitives <code>CC_</code></td><td>Production. Remplace tout, <code>hierarchy</code> compris.</td></tr>
+    </tbody>
+  </table>
+  </div>
+  <p>Regardez la première étape de <code>synth_gatemate</code> : elle charge elle-même les bibliothèques <code>cells_sim.v</code> et <code>cells_bb.v</code>, puis appelle <code>hierarchy -check -top</code>. Vous n'appelez donc plus <code>proc</code>, ni <code>opt</code>, ni <code>techmap</code> vous-même. En production, votre script complet tient en deux lignes.</p>
+  <div class="block">
+    <div class="block-head"><span>script de production</span><button class="copy" data-copy="c7">Copier</button></div>
+    <pre id="c7">read_verilog -defer -sv top.v
+synth_gatemate -top top \
+    -luttree \      <span class="tok-str">← obligatoire pour nextpnr</span>
+    -nomx8           <span class="tok-str">← obligatoire : pas de MX8 dans le silicium</span>
+write_json top.json</pre>
+  </div>
+  <p>Ces deux options sont marquées <strong>obligatoires</strong> dans le guide Cologne Chip, et non facultatives. <code>-luttree</code> active le mapping en arbre de LUT destiné à nextpnr — la documentation Yosys précise de ne pas l'utiliser si vous visez l'ancien outil <code>p_r</code>. Quant à <code>-nomx8</code>, la raison est matérielle : la bibliothèque de primitives ne contient ni <code>CC_MX8</code> ni rien d'équivalent, seulement <code>CC_MX2</code> et <code>CC_MX4</code>.</p>
+  <p>Le guide recommande aussi deux vérifications systématiques après synthèse : relire le journal à la recherche d'avertissements, et appeler <code>stat</code> pour contrôler l'occupation des ressources. C'est précisément la lecture que cette page vous apprend à faire.</p>
+
+  <h3>La carte du flot GateMate</h3>
+  <div class="usage">
+    <span class="usage-k">À quoi sert ce tableau</span>
+    <p>C'est une <strong>référence à consulter</strong>, pas une suite de commandes à taper. Quand vous voyez une cellule inconnue dans un dump, vous cherchez sa ligne ici pour savoir d'où elle vient et ce qu'elle deviendra. Les commandes pour parcourir ce flot vous-même viennent juste après.</p>
+  </div>
+  <p>Le label de gauche est celui que l'option <code>-run</code> accepte.</p>
+  <div class="tbl-scroll">
+  <table>
+    <thead><tr><th>Label</th><th>Commande décisive</th><th>Transformation</th></tr></thead>
+    <tbody>
+      <tr><td><code>begin</code></td><td><code>read_verilog -lib</code>, <code>hierarchy</code></td><td>Charge les modèles GateMate en boîtes noires, désigne le top</td></tr>
+      <tr><td><code>prepare</code></td><td><code>proc</code></td><td>Naissance des <code>$mux</code>, <code>$dff</code>, <code>$dlatch</code> — votre <code>$procmux$3</code> apparaît ici</td></tr>
+      <tr><td><code>prepare</code></td><td><code>flatten</code>, <code>fsm</code>, <code>wreduce</code>, <code>peepopt</code>, <code>muxpack</code>, <code>share</code></td><td>Aplatit la hiérarchie, extrait les automates, réduit les largeurs inutiles, fusionne les multiplexeurs redondants</td></tr>
+      <tr><td><code>prepare</code></td><td><code>techmap -map cmp2lut.v -D LUT_WIDTH=4</code></td><td>Les comparateurs sont convertis en LUT à 4 entrées dès cette étape — c'est ici que finirait un <code>$eq</code> né d'un <code>case</code> sur un bus</td></tr>
+      <tr><td><code>map_mult</code></td><td><code>mul_map.v</code></td><td><code>$mul</code> devient <strong><code>CC_MULT</code></strong></td></tr>
+      <tr><td><code>coarse</code></td><td><code>alumacc</code>, <code>memory -nomap</code></td><td><code>$add</code> et <code>$sub</code> fusionnent en <code>$alu</code> et <code>$macc</code> ; les tableaux deviennent <code>$mem_v2</code></td></tr>
+      <tr><td><code>map_bram</code></td><td><code>brams_map.v</code></td><td><code>$mem_v2</code> devient <strong><code>CC_BRAM_20K</code></strong> ou <strong><code>CC_BRAM_40K</code></strong></td></tr>
+      <tr><td><code>map_ffram</code></td><td><code>memory_map</code></td><td>Les mémoires trop petites pour un BRAM éclatent en bascules et multiplexeurs</td></tr>
+      <tr><td><code>map_gates</code></td><td><code>arith_map.v</code></td><td><code>$alu</code> devient <strong><code>CC_ADDF</code></strong></td></tr>
+      <tr><td><code>map_io</code></td><td><code>iopadmap</code></td><td>Entrée vers <strong><code>CC_IBUF</code></strong>, sortie vers <strong><code>CC_OBUF</code></strong>, sortie trois-états vers <strong><code>CC_TOBUF</code></strong>, bidirectionnel vers <strong><code>CC_IOBUF</code></strong></td></tr>
+      <tr><td><code>map_regs</code></td><td><code>dfflegalize</code>, <code>reg_map.v</code></td><td><code>$dff</code> et <code>$dlatch</code> sont d'abord normalisés en <code>$_DFFE_????_</code> et <code>$_DLATCH_???_</code>, les seules variantes que le CPE sache réaliser, puis traduits en registres</td></tr>
+      <tr><td><code>map_muxs</code></td><td><code>muxcover -mux4 -mux8</code>, <code>mux_map.v</code></td><td>Les cascades de <code>$mux</code> se regroupent en <code>$_MUX4_</code> et <code>$_MUX8_</code>, puis en <strong><code>CC_MX4</code></strong> et <strong><code>CC_MX8</code></strong></td></tr>
+      <tr><td><code>map_luts</code><br><em>avec <code>-luttree</code></em></td><td><code>abc -genlib lut_tree_cells.genlib</code>, puis <code>lut_tree_map.v</code>, <code>gatemate_foldinv</code>, <code>inv_map.v</code></td><td>La logique restante devient <strong><code>CC_LUT2</code></strong>, <strong><code>CC_L2T4</code></strong>, <strong><code>CC_L2T5</code></strong> ; les <code>$__CC_NOT</code> sont ensuite <strong>absorbés</strong> dans ces cellules</td></tr>
+      <tr><td><code>map_luts</code><br><em>sans <code>-luttree</code></em></td><td><code>abc9 -lut 4</code></td><td>Mapping classique en LUT à 4 entrées, pour l'ancien outil <code>p_r</code></td></tr>
+      <tr><td><code>map_cells</code></td><td><code>lut_map.v</code></td><td>Dernière traduction vers les cellules finales</td></tr>
+      <tr><td><code>map_bufg</code></td><td><code>clkbufmap</code></td><td>Les horloges passent par <strong><code>CC_BUFG</code></strong></td></tr>
+      <tr><td><code>check</code></td><td><code>stat -width</code>, <code>check -noinit</code></td><td>Décompte final et vérification de cohérence</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <div class="aside">
+    <p><b>Deux choses que cette carte rend visibles.</b> Votre <code>$mux</code> ne deviendra pas un <code>CC_MX4</code> directement : il lui faudrait d'abord être regroupé avec d'autres par <code>muxcover</code>. Isolé comme il l'est, il finira plus probablement absorbé dans une LUT à <code>map_luts</code> — une LUT sait faire un aiguillage aussi bien qu'un ET.</p>
+    <p>Et les options <code>-nomult</code>, <code>-nobram</code>, <code>-noaddf</code>, <code>-nomx8</code> sautent chacune exactement une ligne de ce tableau. Les activer force la logique concernée à passer par les LUT : plus lent et plus encombrant, mais utile pour déboguer ou pour libérer une ressource devenue rare.</p>
+  </div>
+
+  <h3>Les primitives GateMate</h3>
+  <p>Toutes les cellules dont le type commence par <code>CC_</code> correspondent à une configuration réelle du silicium. Voir apparaître la première dans votre dump signifie que le mapping technologique a eu lieu.</p>
+  <div class="tbl-scroll">
+  <table>
+    <thead><tr><th>Primitive</th><th>Ce qu'elle est</th><th>Produite par</th></tr></thead>
+    <tbody>
+      <tr><td><code>CC_LUT1</code>, <code>CC_LUT2</code></td><td>Tables de vérité à 1 et 2 entrées, la brique élémentaire du CPE</td><td><code>lut_tree_map.v</code></td></tr>
+      <tr><td><code>CC_LUT3</code>, <code>CC_LUT4</code></td><td>Conservées pour compatibilité avec les flots anciens</td><td>instanciées à la main</td></tr>
+      <tr><td><code>CC_L2T4</code></td><td>Arbre de <strong>trois LUT2</strong> formant une fonction à 4 entrées. Un CPE en accepte deux indépendants</td><td><code>lut_tree_map.v</code></td></tr>
+      <tr><td><code>CC_L2T5</code></td><td>Variante à 5 entrées. Combinée à un <code>CC_L2T4</code>, elle forme l'arbre à 8 entrées du CPE</td><td><code>lut_tree_map.v</code></td></tr>
+      <tr><td><code>CC_MX4</code></td><td>Multiplexeur 4 entrées, natif au CPE</td><td><code>mux_map.v</code></td></tr>
+      <tr><td><code>CC_ADDF</code></td><td>Additionneur complet, chaînable par la retenue rapide</td><td><code>arith_map.v</code></td></tr>
+      <tr><td><code>CC_MULT</code></td><td>Multiplieur, construit d'une rangée de blocs 2×2 chaînés</td><td><code>mul_map.v</code></td></tr>
+      <tr><td><code>CC_BRAM_20K</code>, <code>CC_BRAM_40K</code></td><td>Blocs mémoire de 20 et 40 kbits</td><td><code>brams_map.v</code></td></tr>
+      <tr><td><code>CC_IBUF</code>, <code>CC_OBUF</code></td><td>Tampons d'entrée et de sortie sur une broche</td><td><code>iopadmap</code></td></tr>
+      <tr><td><code>CC_TOBUF</code>, <code>CC_IOBUF</code></td><td>Sortie trois-états et broche bidirectionnelle</td><td><code>iopadmap</code></td></tr>
+      <tr><td><code>CC_BUFG</code></td><td>Tampon d'horloge global, inséré automatiquement</td><td><code>clkbufmap</code></td></tr>
+      <tr><td><code>CC_PLL</code></td><td>Générateur d'horloges dérivées</td><td>instanciée à la main</td></tr>
+      <tr><td><code>CC_DFF</code></td><td>Bascule D avec validation d'horloge et set/reset asynchrone configurable</td><td><code>reg_map.v</code></td></tr>
+      <tr><td><code>CC_DLT</code></td><td>Le verrou, même emplacement dans le CPE</td><td><code>reg_map.v</code></td></tr>
+      <tr><td><code>CC_MX2</code></td><td>Multiplexeur 2 entrées</td><td><code>mux_map.v</code></td></tr>
+      <tr><td><code>CC_FIFO_40K</code></td><td>File d'attente matérielle bâtie sur un bloc RAM</td><td>instanciée à la main</td></tr>
+      <tr><td><code>CC_IDDR</code>, <code>CC_ODDR</code></td><td>Entrée et sortie double débit, une donnée par front</td><td>instanciées à la main</td></tr>
+      <tr><td><code>CC_LVDS_*</code></td><td>Variantes différentielles des quatre tampons d'E/S</td><td>instanciées à la main</td></tr>
+      <tr><td><code>CC_SERDES</code></td><td>Interface série rapide</td><td>instanciée à la main</td></tr>
+      <tr><td><code>CC_USR_RSTN</code>, <code>CC_CFG_CTRL</code></td><td>Remise à zéro utilisateur et contrôle de reconfiguration</td><td>instanciées à la main</td></tr>
+    </tbody>
+  </table>
+  </div>
+  <p>Deux cellules ne sont pas des primitives mais des intermédiaires que vous croiserez dans un dump à mi-parcours. <code>$__CC_NOT</code> est un inverseur temporaire, et <code>$_DFFE_????_</code> ou <code>$_DLATCH_???_</code> sont les formes normalisées que <code>dfflegalize</code> impose avant traduction — les points d'interrogation y encodent les polarités d'horloge, de validation et de remise à zéro.</p>
+  <p>Pour les noms exacts des registres, ouvrez <code>share/yosys/gatemate/cells_sim.v</code> : ce fichier décrit le comportement de chaque primitive en Verilog lisible, et c'est lui que <code>synth_gatemate</code> charge à sa toute première étape.</p>
+
+  <h3>L'inverseur qui ne coûte rien</h3>
+  <p>La commande <code>gatemate_foldinv</code> mérite un mot, parce qu'elle illustre une idée générale du mapping technologique. Elle cherche les cellules <code>$__CC_NOT</code> et les <strong>replie à l'intérieur</strong> des <code>CC_LUT2</code>, <code>CC_L2T4</code> et <code>CC_L2T5</code> voisines.</p>
+  <p>La raison est simple : une table de vérité peut réaliser n'importe quelle fonction de ses entrées, y compris la fonction inversée. Inverser une sortie revient donc à réécrire le contenu de la table, pas à ajouter un composant. Sur GateMate comme ailleurs, <strong>un inverseur est gratuit tant qu'il touche une LUT</strong>. C'est une intuition qui vous servira à lire n'importe quel rapport de ressources : ne cherchez pas vos <code>~</code> dans le décompte final, ils ont été absorbés.</p>
+
+  <h3>Les quatorze sorties, réellement observées</h3>
+  <div class="usage">
+    <span class="usage-k">À quoi sert ce bloc</span>
+    <p>Ce sont les <strong>sorties véritables</strong> obtenues en exécutant le flot sur <code>pas1.v</code> avec Yosys 0.69, un label à la fois. Dépliez une étape pour voir ce qui s'y passe ; les quatre étapes qui changent quelque chose portent un liseré bleu et un schéma produit par <code>show</code>.</p>
+  </div>
+  <p>Le résultat le plus instructif se lit dans la colonne de droite : sur quinze états, <strong>seuls trois labels modifient le design</strong>. Les onze autres cherchent une construction que <code>pas1.v</code> ne contient pas. C'est normal, et c'est ce qui rend le flot lisible une fois qu'on le sait.</p>
+
+<div class="gmflow" id="gmflow">
+<div class="gmf-head"><span>Étape</span><span>Cellules dans le module</span></div>
+<div class="gmf-r changed">
+  <button class="gmf-t" aria-expanded="false" data-i="0">
+    <span class="gmf-lab"><code>read_verilog</code></span>
+    <span class="gmf-cells"><span class="tok-priv">1&times; $and</span></span>
+    <span class="gmf-mark">change</span>
+  </button>
+  <div class="gmf-p" hidden>
+    <p class="gmf-cmd">&mdash;</p>
+    <p>Le point de départ. Une cellule <code>$and</code>, opérateur RTL paramétrable.</p>
+    <figure class="gmf-fig"><svg
+ viewBox="0.00 0.00 334.88 98.00" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<g id="graph0" class="graph" transform="scale(1 1) rotate(0) translate(4 94)">
+<title>pas1</title>
+<polygon fill="none" stroke="transparent" points="-4,4 -4,-94 330.88,-94 330.88,4 -4,4"/>
+
+<g id="node1" class="node">
+<title>n2</title>
+<polygon fill="none" stroke="currentColor" points="327.02,-37.54 327.02,-52.46 310.45,-63 287.03,-63 270.46,-52.46 270.46,-37.54 287.03,-27 310.45,-27 327.02,-37.54"/>
+<text text-anchor="middle" x="298.74" y="-41.3" font-family="Times,serif" font-size="14.00">out</text>
+</g>
+
+<g id="node2" class="node">
+<title>n3</title>
+<polygon fill="none" stroke="currentColor" points="54,-10.54 54,-25.46 38.18,-36 15.82,-36 0,-25.46 0,-10.54 15.82,0 38.18,0 54,-10.54"/>
+<text text-anchor="middle" x="27" y="-14.3" font-family="Times,serif" font-size="14.00">b</text>
+</g>
+
+<g id="node4" class="node">
+<title>c8</title>
+<polygon fill="none" stroke="currentColor" points="90,-22 90,-68 195,-68 195,-22 90,-22"/>
+<text text-anchor="middle" x="103.5" y="-52.8" font-family="Times,serif" font-size="14.00">A</text>
+<polyline fill="none" stroke="currentColor" points="90,-45 117,-45 "/>
+<text text-anchor="middle" x="103.5" y="-29.8" font-family="Times,serif" font-size="14.00">B</text>
+<polyline fill="none" stroke="currentColor" points="117,-22 117,-68 "/>
+<text text-anchor="middle" x="143" y="-48.8" font-family="Times,serif" font-size="14.00">$1</text>
+<text text-anchor="middle" x="143" y="-33.8" font-family="Times,serif" font-size="14.00">$and</text>
+<polyline fill="none" stroke="currentColor" points="169,-22 169,-68 "/>
+<text text-anchor="middle" x="182" y="-41.3" font-family="Times,serif" font-size="14.00">Y</text>
+</g>
+
+<g id="edge3" class="edge">
+<title>n3:e&#45;&gt;c8:w</title>
+<path fill="none" stroke="currentColor" d="M54,-18C67.27,-18 71.16,-26.79 80.04,-30.91"/>
+<polygon fill="currentColor" stroke="currentColor" points="79.49,-34.38 90,-33 80.93,-27.53 79.49,-34.38"/>
+</g>
+
+<g id="node3" class="node">
+<title>n4</title>
+<polygon fill="none" stroke="currentColor" points="54,-64.54 54,-79.46 38.18,-90 15.82,-90 0,-79.46 0,-64.54 15.82,-54 38.18,-54 54,-64.54"/>
+<text text-anchor="middle" x="27" y="-68.3" font-family="Times,serif" font-size="14.00">a</text>
+</g>
+
+<g id="edge4" class="edge">
+<title>n4:e&#45;&gt;c8:w</title>
+<path fill="none" stroke="currentColor" d="M54,-72C67.27,-72 71.16,-63.21 80.04,-59.09"/>
+<polygon fill="currentColor" stroke="currentColor" points="80.93,-62.47 90,-57 79.49,-55.62 80.93,-62.47"/>
+</g>
+
+<g id="node5" class="node">
+<title>x0</title>
+<ellipse fill="currentColor" stroke="currentColor" cx="232.8" cy="-45" rx="1.8" ry="1.8"/>
+</g>
+
+<g id="edge1" class="edge">
+<title>c8:e&#45;&gt;x0:w</title>
+<path fill="none" stroke="currentColor" d="M195,-45C207,-45 212.25,-45 220.88,-45"/>
+<polygon fill="currentColor" stroke="currentColor" points="221,-48.5 231,-45 221,-41.5 221,-48.5"/>
+</g>
+
+<g id="edge2" class="edge">
+<title>x0:e&#45;&gt;n2:w</title>
+<path fill="none" stroke="currentColor" d="M234.6,-45C246.6,-45 251.85,-45 260.48,-45"/>
+<polygon fill="currentColor" stroke="currentColor" points="260.6,-48.5 270.6,-45 260.6,-41.5 260.6,-48.5"/>
+</g>
+</g>
+</svg><figcaption>Schéma produit par <code>show</code> à cette étape.</figcaption></figure>
+    <pre class="gmf-dump">module \pas1
+  attribute \src &quot;pas1.v:2.17-2.18&quot;
+  wire input 1 \a
+  attribute \src &quot;pas1.v:3.17-3.18&quot;
+  wire input 2 \b
+  attribute \src &quot;pas1.v:4.17-4.20&quot;
+  wire output 3 \out
+  attribute \src &quot;pas1.v:6.18-6.23&quot;
+  wire $and$pas1.v:6$1_Y
+  attribute \src &quot;pas1.v:6.18-6.23&quot;
+  cell $and $and$pas1.v:6$1
+    parameter \A_SIGNED 0
+    parameter \B_SIGNED 0
+    parameter \A_WIDTH 1
+    parameter \B_WIDTH 1
+    parameter \Y_WIDTH 1
+    connect \A \a
+    connect \B \b
+    connect \Y $and$pas1.v:6$1_Y
+  end
+  connect \out $and$pas1.v:6$1_Y
+end</pre>
+  </div>
+</div>
+<div class="gmf-r">
+  <button class="gmf-t" aria-expanded="false" data-i="1">
+    <span class="gmf-lab"><code>begin</code></span>
+    <span class="gmf-cells"><span class="tok-priv">1&times; $and</span></span>
+    <span class="gmf-mark">inchangé</span>
+  </button>
+  <div class="gmf-p" hidden>
+    <p class="gmf-cmd">read_verilog -lib, hierarchy</p>
+    <p>Charge <code>cells_sim.v</code> et <code>cells_bb.v</code> en boîtes noires, puis appelle <code>hierarchy -check -top</code>. Votre design ne bouge pas : seul le catalogue des primitives est entré en mémoire.</p>
+  </div>
+</div>
+<div class="gmf-r">
+  <button class="gmf-t" aria-expanded="false" data-i="2">
+    <span class="gmf-lab"><code>prepare</code></span>
+    <span class="gmf-cells"><span class="tok-priv">1&times; $and</span></span>
+    <span class="gmf-mark">inchangé</span>
+  </button>
+  <div class="gmf-p" hidden>
+    <p class="gmf-cmd">proc, flatten, opt, fsm, wreduce, muxpack, share</p>
+    <p>Dix-huit commandes, et rien ne change. Normal : il n'y a ni bloc <code>always</code> à convertir, ni automate à extraire, ni largeur à réduire.</p>
+  </div>
+</div>
+<div class="gmf-r">
+  <button class="gmf-t" aria-expanded="false" data-i="3">
+    <span class="gmf-lab"><code>map_mult</code></span>
+    <span class="gmf-cells"><span class="tok-priv">1&times; $and</span></span>
+    <span class="gmf-mark">inchangé</span>
+  </button>
+  <div class="gmf-p" hidden>
+    <p class="gmf-cmd">mul_map.v</p>
+    <p>Cherche des <code>$mul</code>. Il n'y en a pas.</p>
+  </div>
+</div>
+<div class="gmf-r">
+  <button class="gmf-t" aria-expanded="false" data-i="4">
+    <span class="gmf-lab"><code>coarse</code></span>
+    <span class="gmf-cells"><span class="tok-priv">1&times; $and</span></span>
+    <span class="gmf-mark">inchangé</span>
+  </button>
+  <div class="gmf-p" hidden>
+    <p class="gmf-cmd">alumacc, memory -nomap</p>
+    <p>Cherche des additions à fusionner et des tableaux à transformer. Ni l'un ni l'autre.</p>
+  </div>
+</div>
+<div class="gmf-r">
+  <button class="gmf-t" aria-expanded="false" data-i="5">
+    <span class="gmf-lab"><code>map_bram</code></span>
+    <span class="gmf-cells"><span class="tok-priv">1&times; $and</span></span>
+    <span class="gmf-mark">inchangé</span>
+  </button>
+  <div class="gmf-p" hidden>
+    <p class="gmf-cmd">brams_map.v</p>
+    <p>Cherche des mémoires à loger dans un bloc RAM. Aucune.</p>
+  </div>
+</div>
+<div class="gmf-r">
+  <button class="gmf-t" aria-expanded="false" data-i="6">
+    <span class="gmf-lab"><code>map_ffram</code></span>
+    <span class="gmf-cells"><span class="tok-priv">1&times; $and</span></span>
+    <span class="gmf-mark">inchangé</span>
+  </button>
+  <div class="gmf-p" hidden>
+    <p class="gmf-cmd">memory_map</p>
+    <p>Éclate les mémoires trop petites pour un BRAM. Aucune non plus.</p>
+  </div>
+</div>
+<div class="gmf-r changed">
+  <button class="gmf-t" aria-expanded="false" data-i="7">
+    <span class="gmf-lab"><code>map_gates</code></span>
+    <span class="gmf-cells"><span class="tok-priv">1&times; $_AND_</span></span>
+    <span class="gmf-mark">change</span>
+  </button>
+  <div class="gmf-p" hidden>
+    <p class="gmf-cmd">techmap, arith_map.v</p>
+    <p><strong>Premier vrai changement.</strong> L'opérateur <code>$and</code> devient la porte <code>$_AND_</code> : un bit, aucun paramètre. Les tirets bas signalent le passage au niveau porte logique.</p>
+    <figure class="gmf-fig"><svg
+ viewBox="0.00 0.00 315.28 98.00" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<g id="graph0" class="graph" transform="scale(1 1) rotate(0) translate(4 94)">
+<title>pas1</title>
+<polygon fill="none" stroke="transparent" points="-4,4 -4,-94 311.28,-94 311.28,4 -4,4"/>
+
+<g id="node1" class="node">
+<title>n1</title>
+<polygon fill="none" stroke="currentColor" points="307.42,-37.54 307.42,-52.46 290.85,-63 267.43,-63 250.86,-52.46 250.86,-37.54 267.43,-27 290.85,-27 307.42,-37.54"/>
+<text text-anchor="middle" x="279.14" y="-41.3" font-family="Times,serif" font-size="14.00">out</text>
+</g>
+
+<g id="node2" class="node">
+<title>n2</title>
+<polygon fill="none" stroke="currentColor" points="54,-10.54 54,-25.46 38.18,-36 15.82,-36 0,-25.46 0,-10.54 15.82,0 38.18,0 54,-10.54"/>
+<text text-anchor="middle" x="27" y="-14.3" font-family="Times,serif" font-size="14.00">b</text>
+</g>
+
+<g id="node4" class="node">
+<title>c7</title>
+<polygon fill="none" stroke="currentColor" points="90,-22 90,-68 215,-68 215,-22 90,-22"/>
+<text text-anchor="middle" x="103.5" y="-52.8" font-family="Times,serif" font-size="14.00">A</text>
+<polyline fill="none" stroke="currentColor" points="90,-45 117,-45 "/>
+<text text-anchor="middle" x="103.5" y="-29.8" font-family="Times,serif" font-size="14.00">B</text>
+<polyline fill="none" stroke="currentColor" points="117,-22 117,-68 "/>
+<text text-anchor="middle" x="153" y="-48.8" font-family="Times,serif" font-size="14.00">$90</text>
+<text text-anchor="middle" x="153" y="-33.8" font-family="Times,serif" font-size="14.00">$_AND_</text>
+<polyline fill="none" stroke="currentColor" points="189,-22 189,-68 "/>
+<text text-anchor="middle" x="202" y="-41.3" font-family="Times,serif" font-size="14.00">Y</text>
+</g>
+
+<g id="edge2" class="edge">
+<title>n2:e&#45;&gt;c7:w</title>
+<path fill="none" stroke="currentColor" d="M54,-18C67.27,-18 71.16,-26.79 80.04,-30.91"/>
+<polygon fill="currentColor" stroke="currentColor" points="79.49,-34.38 90,-33 80.93,-27.53 79.49,-34.38"/>
+</g>
+
+<g id="node3" class="node">
+<title>n3</title>
+<polygon fill="none" stroke="currentColor" points="54,-64.54 54,-79.46 38.18,-90 15.82,-90 0,-79.46 0,-64.54 15.82,-54 38.18,-54 54,-64.54"/>
+<text text-anchor="middle" x="27" y="-68.3" font-family="Times,serif" font-size="14.00">a</text>
+</g>
+
+<g id="edge3" class="edge">
+<title>n3:e&#45;&gt;c7:w</title>
+<path fill="none" stroke="currentColor" d="M54,-72C67.27,-72 71.16,-63.21 80.04,-59.09"/>
+<polygon fill="currentColor" stroke="currentColor" points="80.93,-62.47 90,-57 79.49,-55.62 80.93,-62.47"/>
+</g>
+
+<g id="edge1" class="edge">
+<title>c7:e&#45;&gt;n1:w</title>
+<path fill="none" stroke="currentColor" d="M215,-45C227,-45 232.25,-45 240.87,-45"/>
+<polygon fill="currentColor" stroke="currentColor" points="241,-48.5 251,-45 241,-41.5 241,-48.5"/>
+</g>
+</g>
+</svg><figcaption>Schéma produit par <code>show</code> à cette étape.</figcaption></figure>
+    <pre class="gmf-dump">module \pas1
+  attribute \src &quot;pas1.v:2.17-2.18&quot;
+  wire input 1 \a
+  attribute \src &quot;pas1.v:3.17-3.18&quot;
+  wire input 2 \b
+  attribute \src &quot;pas1.v:4.17-4.20&quot;
+  wire output 3 \out
+  attribute \src &quot;pas1.v:6.18-6.23&quot;
+  cell $_AND_ $auto$simplemap.cc:106:simplemap_bitop$90
+    connect \A \a
+    connect \B \b
+    connect \Y \out
+  end
+end</pre>
+  </div>
+</div>
+<div class="gmf-r changed">
+  <button class="gmf-t" aria-expanded="false" data-i="8">
+    <span class="gmf-lab"><code>map_io</code></span>
+    <span class="gmf-cells"><span class="tok-priv">1&times; $_AND_</span> <span class="tok-pub">2&times; CC_IBUF</span> <span class="tok-pub">1&times; CC_OBUF</span></span>
+    <span class="gmf-mark">change</span>
+  </button>
+  <div class="gmf-p" hidden>
+    <p class="gmf-cmd">iopadmap</p>
+    <p><strong>Deuxième changement.</strong> Les trois ports reçoivent leurs tampons physiques : deux <code>CC_IBUF</code> en entrée, un <code>CC_OBUF</code> en sortie. Ce sont les premières primitives <code>CC_</code> du design — mais la logique, elle, est encore générique.</p>
+    <figure class="gmf-fig"><svg
+ viewBox="0.00 0.00 659.28 104.00" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<g id="graph0" class="graph" transform="scale(1 1) rotate(0) translate(4 100)">
+<title>pas1</title>
+<polygon fill="none" stroke="transparent" points="-4,4 -4,-100 655.28,-100 655.28,4 -4,4"/>
+
+<g id="node1" class="node">
+<title>n2</title>
+<polygon fill="none" stroke="currentColor" points="651.42,-40.04 651.42,-54.96 634.85,-65.5 611.43,-65.5 594.86,-54.96 594.86,-40.04 611.43,-29.5 634.85,-29.5 651.42,-40.04"/>
+<text text-anchor="middle" x="623.14" y="-43.8" font-family="Times,serif" font-size="14.00">out</text>
+</g>
+
+<g id="node2" class="node">
+<title>n3</title>
+<polygon fill="none" stroke="currentColor" points="54,-12.04 54,-26.96 38.18,-37.5 15.82,-37.5 0,-26.96 0,-12.04 15.82,-1.5 38.18,-1.5 54,-12.04"/>
+<text text-anchor="middle" x="27" y="-15.8" font-family="Times,serif" font-size="14.00">b</text>
+</g>
+
+<g id="node5" class="node">
+<title>c10</title>
+<polygon fill="none" stroke="currentColor" points="90,-0.5 90,-38.5 220,-38.5 220,-0.5 90,-0.5"/>
+<text text-anchor="middle" x="101" y="-15.8" font-family="Times,serif" font-size="14.00">I</text>
+<polyline fill="none" stroke="currentColor" points="112,-0.5 112,-38.5 "/>
+<text text-anchor="middle" x="153" y="-23.3" font-family="Times,serif" font-size="14.00">$pas1.b</text>
+<text text-anchor="middle" x="153" y="-8.3" font-family="Times,serif" font-size="14.00">CC_IBUF</text>
+<polyline fill="none" stroke="currentColor" points="194,-0.5 194,-38.5 "/>
+<text text-anchor="middle" x="207" y="-15.8" font-family="Times,serif" font-size="14.00">Y</text>
+</g>
+
+<g id="edge3" class="edge">
+<title>n3:e&#45;&gt;c10:w</title>
+<path fill="none" stroke="currentColor" d="M54,-19.5C66,-19.5 71.25,-19.5 79.88,-19.5"/>
+<polygon fill="currentColor" stroke="currentColor" points="80,-23 90,-19.5 80,-16 80,-23"/>
+</g>
+
+<g id="node3" class="node">
+<title>n4</title>
+<polygon fill="none" stroke="currentColor" points="54,-69.04 54,-83.96 38.18,-94.5 15.82,-94.5 0,-83.96 0,-69.04 15.82,-58.5 38.18,-58.5 54,-69.04"/>
+<text text-anchor="middle" x="27" y="-72.8" font-family="Times,serif" font-size="14.00">a</text>
+</g>
+
+<g id="node4" class="node">
+<title>c9</title>
+<polygon fill="none" stroke="currentColor" points="90,-57.5 90,-95.5 220,-95.5 220,-57.5 90,-57.5"/>
+<text text-anchor="middle" x="101" y="-72.8" font-family="Times,serif" font-size="14.00">I</text>
+<polyline fill="none" stroke="currentColor" points="112,-57.5 112,-95.5 "/>
+<text text-anchor="middle" x="153" y="-80.3" font-family="Times,serif" font-size="14.00">$pas1.a</text>
+<text text-anchor="middle" x="153" y="-65.3" font-family="Times,serif" font-size="14.00">CC_IBUF</text>
+<polyline fill="none" stroke="currentColor" points="194,-57.5 194,-95.5 "/>
+<text text-anchor="middle" x="207" y="-72.8" font-family="Times,serif" font-size="14.00">Y</text>
+</g>
+
+<g id="edge4" class="edge">
+<title>n4:e&#45;&gt;c9:w</title>
+<path fill="none" stroke="currentColor" d="M54,-76.5C66,-76.5 71.25,-76.5 79.88,-76.5"/>
+<polygon fill="currentColor" stroke="currentColor" points="80,-80 90,-76.5 80,-73 80,-80"/>
+</g>
+
+<g id="node7" class="node">
+<title>c15</title>
+<polygon fill="none" stroke="currentColor" points="256,-24.5 256,-70.5 381,-70.5 381,-24.5 256,-24.5"/>
+<text text-anchor="middle" x="269.5" y="-55.3" font-family="Times,serif" font-size="14.00">A</text>
+<polyline fill="none" stroke="currentColor" points="256,-47.5 283,-47.5 "/>
+<text text-anchor="middle" x="269.5" y="-32.3" font-family="Times,serif" font-size="14.00">B</text>
+<polyline fill="none" stroke="currentColor" points="283,-24.5 283,-70.5 "/>
+<text text-anchor="middle" x="319" y="-51.3" font-family="Times,serif" font-size="14.00">$90</text>
+<text text-anchor="middle" x="319" y="-36.3" font-family="Times,serif" font-size="14.00">$_AND_</text>
+<polyline fill="none" stroke="currentColor" points="355,-24.5 355,-70.5 "/>
+<text text-anchor="middle" x="368" y="-43.8" font-family="Times,serif" font-size="14.00">Y</text>
+</g>
+
+<g id="edge5" class="edge">
+<title>c9:e&#45;&gt;c15:w</title>
+<path fill="none" stroke="currentColor" d="M220,-76.5C233.69,-76.5 237.15,-66.33 246.21,-61.72"/>
+<polygon fill="currentColor" stroke="currentColor" points="247.02,-65.13 256,-59.5 245.47,-58.3 247.02,-65.13"/>
+</g>
+
+<g id="edge6" class="edge">
+<title>c10:e&#45;&gt;c15:w</title>
+<path fill="none" stroke="currentColor" d="M220,-19.5C233.41,-19.5 237.12,-28.88 245.99,-33.28"/>
+<polygon fill="currentColor" stroke="currentColor" points="245.48,-36.75 256,-35.5 247,-29.91 245.48,-36.75"/>
+</g>
+
+<g id="node6" class="node">
+<title>c13</title>
+<polygon fill="none" stroke="currentColor" points="417,-28.5 417,-66.5 559,-66.5 559,-28.5 417,-28.5"/>
+<text text-anchor="middle" x="430" y="-43.8" font-family="Times,serif" font-size="14.00">A</text>
+<polyline fill="none" stroke="currentColor" points="443,-28.5 443,-66.5 "/>
+<text text-anchor="middle" x="487" y="-51.3" font-family="Times,serif" font-size="14.00">$pas1.out</text>
+<text text-anchor="middle" x="487" y="-36.3" font-family="Times,serif" font-size="14.00">CC_OBUF</text>
+<polyline fill="none" stroke="currentColor" points="531,-28.5 531,-66.5 "/>
+<text text-anchor="middle" x="545" y="-43.8" font-family="Times,serif" font-size="14.00">O</text>
+</g>
+
+<g id="edge2" class="edge">
+<title>c13:e&#45;&gt;n2:w</title>
+<path fill="none" stroke="currentColor" d="M559,-47.5C571,-47.5 576.25,-47.5 584.88,-47.5"/>
+<polygon fill="currentColor" stroke="currentColor" points="585,-51 595,-47.5 585,-44 585,-51"/>
+</g>
+
+<g id="edge1" class="edge">
+<title>c15:e&#45;&gt;c13:w</title>
+<path fill="none" stroke="currentColor" d="M381,-47.5C393,-47.5 398.25,-47.5 406.88,-47.5"/>
+<polygon fill="currentColor" stroke="currentColor" points="407,-51 417,-47.5 407,-44 407,-51"/>
+</g>
+</g>
+</svg><figcaption>Schéma produit par <code>show</code> à cette étape.</figcaption></figure>
+    <pre class="gmf-dump">module \pas1
+  wire $iopadmap$b
+  wire $iopadmap$a
+  attribute \src &quot;pas1.v:2.17-2.18&quot;
+  wire input 1 \a
+  attribute \src &quot;pas1.v:3.17-3.18&quot;
+  wire input 2 \b
+  attribute \src &quot;pas1.v:4.17-4.20&quot;
+  wire output 3 \out
+  wire $iopadmap$out
+  attribute \src &quot;pas1.v:6.18-6.23&quot;
+  cell $_AND_ $auto$simplemap.cc:106:simplemap_bitop$90
+    connect \A $iopadmap$a
+    connect \B $iopadmap$b
+    connect \Y $iopadmap$out
+  end
+  attribute \keep 1
+  cell \CC_OBUF $iopadmap$pas1.out
+    connect \A $iopadmap$out
+    connect \O \out
+  end
+  attribute \keep 1
+  cell \CC_IBUF $iopadmap$pas1.b
+    connect \Y $iopadmap$b
+    connect \I \b
+  end
+  attribute \keep 1
+  cell \CC_IBUF $iopadmap$pas1.a
+    connect \Y $iopadmap$a
+    connect \I \a
+  end
+end</pre>
+  </div>
+</div>
+<div class="gmf-r">
+  <button class="gmf-t" aria-expanded="false" data-i="9">
+    <span class="gmf-lab"><code>map_regs</code></span>
+    <span class="gmf-cells"><span class="tok-priv">1&times; $_AND_</span> <span class="tok-pub">2&times; CC_IBUF</span> <span class="tok-pub">1&times; CC_OBUF</span></span>
+    <span class="gmf-mark">inchangé</span>
+  </button>
+  <div class="gmf-p" hidden>
+    <p class="gmf-cmd">dfflegalize, reg_map.v</p>
+    <p>Cherche des bascules et des verrous à normaliser. Le design est purement combinatoire.</p>
+  </div>
+</div>
+<div class="gmf-r">
+  <button class="gmf-t" aria-expanded="false" data-i="10">
+    <span class="gmf-lab"><code>map_muxs</code></span>
+    <span class="gmf-cells"><span class="tok-priv">1&times; $_AND_</span> <span class="tok-pub">2&times; CC_IBUF</span> <span class="tok-pub">1&times; CC_OBUF</span></span>
+    <span class="gmf-mark">inchangé</span>
+  </button>
+  <div class="gmf-p" hidden>
+    <p class="gmf-cmd">muxcover -mux4 -mux8, mux_map.v</p>
+    <p>Cherche des cascades de multiplexeurs à regrouper. Il n'y en a aucune — et c'est ici que <code>-nomx8</code> agit, en interdisant les regroupements à huit entrées.</p>
+  </div>
+</div>
+<div class="gmf-r changed">
+  <button class="gmf-t" aria-expanded="false" data-i="11">
+    <span class="gmf-lab"><code>map_luts</code></span>
+    <span class="gmf-cells"><span class="tok-pub">2&times; CC_IBUF</span> <span class="tok-pub">1&times; CC_OBUF</span> <span class="tok-pub">1&times; CC_LUT2</span></span>
+    <span class="gmf-mark">change</span>
+  </button>
+  <div class="gmf-p" hidden>
+    <p class="gmf-cmd">abc -genlib, lut_tree_map.v, gatemate_foldinv</p>
+    <p><strong>Le moment décisif.</strong> ABC mappe la porte en table de vérité. Le <code>$_AND_</code> disparaît, remplacé par un <code>CC_LUT2</code> dont le paramètre <code>INIT</code> vaut <code>4'1000</code> — la table du ET. Votre porte n'existe plus : il ne reste que quatre bits de configuration.</p>
+    <figure class="gmf-fig"><svg
+ viewBox="0.00 0.00 676.28 104.00" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<g id="graph0" class="graph" transform="scale(1 1) rotate(0) translate(4 100)">
+<title>pas1</title>
+<polygon fill="none" stroke="transparent" points="-4,4 -4,-100 672.28,-100 672.28,4 -4,4"/>
+
+<g id="node1" class="node">
+<title>n2</title>
+<polygon fill="none" stroke="currentColor" points="668.42,-40.04 668.42,-54.96 651.85,-65.5 628.43,-65.5 611.86,-54.96 611.86,-40.04 628.43,-29.5 651.85,-29.5 668.42,-40.04"/>
+<text text-anchor="middle" x="640.14" y="-43.8" font-family="Times,serif" font-size="14.00">out</text>
+</g>
+
+<g id="node2" class="node">
+<title>n3</title>
+<polygon fill="none" stroke="currentColor" points="54,-12.04 54,-26.96 38.18,-37.5 15.82,-37.5 0,-26.96 0,-12.04 15.82,-1.5 38.18,-1.5 54,-12.04"/>
+<text text-anchor="middle" x="27" y="-15.8" font-family="Times,serif" font-size="14.00">b</text>
+</g>
+
+<g id="node5" class="node">
+<title>c13</title>
+<polygon fill="none" stroke="currentColor" points="90,-0.5 90,-38.5 220,-38.5 220,-0.5 90,-0.5"/>
+<text text-anchor="middle" x="101" y="-15.8" font-family="Times,serif" font-size="14.00">I</text>
+<polyline fill="none" stroke="currentColor" points="112,-0.5 112,-38.5 "/>
+<text text-anchor="middle" x="153" y="-23.3" font-family="Times,serif" font-size="14.00">$pas1.b</text>
+<text text-anchor="middle" x="153" y="-8.3" font-family="Times,serif" font-size="14.00">CC_IBUF</text>
+<polyline fill="none" stroke="currentColor" points="194,-0.5 194,-38.5 "/>
+<text text-anchor="middle" x="207" y="-15.8" font-family="Times,serif" font-size="14.00">Y</text>
+</g>
+
+<g id="edge3" class="edge">
+<title>n3:e&#45;&gt;c13:w</title>
+<path fill="none" stroke="currentColor" d="M54,-19.5C66,-19.5 71.25,-19.5 79.88,-19.5"/>
+<polygon fill="currentColor" stroke="currentColor" points="80,-23 90,-19.5 80,-16 80,-23"/>
+</g>
+
+<g id="node3" class="node">
+<title>n4</title>
+<polygon fill="none" stroke="currentColor" points="54,-69.04 54,-83.96 38.18,-94.5 15.82,-94.5 0,-83.96 0,-69.04 15.82,-58.5 38.18,-58.5 54,-69.04"/>
+<text text-anchor="middle" x="27" y="-72.8" font-family="Times,serif" font-size="14.00">a</text>
+</g>
+
+<g id="node7" class="node">
+<title>c16</title>
+<polygon fill="none" stroke="currentColor" points="90,-57.5 90,-95.5 220,-95.5 220,-57.5 90,-57.5"/>
+<text text-anchor="middle" x="101" y="-72.8" font-family="Times,serif" font-size="14.00">I</text>
+<polyline fill="none" stroke="currentColor" points="112,-57.5 112,-95.5 "/>
+<text text-anchor="middle" x="153" y="-80.3" font-family="Times,serif" font-size="14.00">$pas1.a</text>
+<text text-anchor="middle" x="153" y="-65.3" font-family="Times,serif" font-size="14.00">CC_IBUF</text>
+<polyline fill="none" stroke="currentColor" points="194,-57.5 194,-95.5 "/>
+<text text-anchor="middle" x="207" y="-72.8" font-family="Times,serif" font-size="14.00">Y</text>
+</g>
+
+<g id="edge4" class="edge">
+<title>n4:e&#45;&gt;c16:w</title>
+<path fill="none" stroke="currentColor" d="M54,-76.5C66,-76.5 71.25,-76.5 79.88,-76.5"/>
+<polygon fill="currentColor" stroke="currentColor" points="80,-80 90,-76.5 80,-73 80,-80"/>
+</g>
+
+<g id="node4" class="node">
+<title>c10</title>
+<polygon fill="none" stroke="currentColor" points="256,-24.5 256,-70.5 398,-70.5 398,-24.5 256,-24.5"/>
+<text text-anchor="middle" x="271.5" y="-55.3" font-family="Times,serif" font-size="14.00">I0</text>
+<polyline fill="none" stroke="currentColor" points="256,-47.5 287,-47.5 "/>
+<text text-anchor="middle" x="271.5" y="-32.3" font-family="Times,serif" font-size="14.00">I1</text>
+<polyline fill="none" stroke="currentColor" points="287,-24.5 287,-70.5 "/>
+<text text-anchor="middle" x="328.5" y="-51.3" font-family="Times,serif" font-size="14.00">$92</text>
+<text text-anchor="middle" x="328.5" y="-36.3" font-family="Times,serif" font-size="14.00">CC_LUT2</text>
+<polyline fill="none" stroke="currentColor" points="370,-24.5 370,-70.5 "/>
+<text text-anchor="middle" x="384" y="-43.8" font-family="Times,serif" font-size="14.00">O</text>
+</g>
+
+<g id="node6" class="node">
+<title>c15</title>
+<polygon fill="none" stroke="currentColor" points="434,-28.5 434,-66.5 576,-66.5 576,-28.5 434,-28.5"/>
+<text text-anchor="middle" x="447" y="-43.8" font-family="Times,serif" font-size="14.00">A</text>
+<polyline fill="none" stroke="currentColor" points="460,-28.5 460,-66.5 "/>
+<text text-anchor="middle" x="504" y="-51.3" font-family="Times,serif" font-size="14.00">$pas1.out</text>
+<text text-anchor="middle" x="504" y="-36.3" font-family="Times,serif" font-size="14.00">CC_OBUF</text>
+<polyline fill="none" stroke="currentColor" points="548,-28.5 548,-66.5 "/>
+<text text-anchor="middle" x="562" y="-43.8" font-family="Times,serif" font-size="14.00">O</text>
+</g>
+
+<g id="edge6" class="edge">
+<title>c10:e&#45;&gt;c15:w</title>
+<path fill="none" stroke="currentColor" d="M398,-47.5C410,-47.5 415.25,-47.5 423.88,-47.5"/>
+<polygon fill="currentColor" stroke="currentColor" points="424,-51 434,-47.5 424,-44 424,-51"/>
+</g>
+
+<g id="edge5" class="edge">
+<title>c13:e&#45;&gt;c10:w</title>
+<path fill="none" stroke="currentColor" d="M220,-19.5C233.41,-19.5 237.12,-28.88 245.99,-33.28"/>
+<polygon fill="currentColor" stroke="currentColor" points="245.48,-36.75 256,-35.5 247,-29.91 245.48,-36.75"/>
+</g>
+
+<g id="edge2" class="edge">
+<title>c15:e&#45;&gt;n2:w</title>
+<path fill="none" stroke="currentColor" d="M576,-47.5C588,-47.5 593.25,-47.5 601.88,-47.5"/>
+<polygon fill="currentColor" stroke="currentColor" points="602,-51 612,-47.5 602,-44 602,-51"/>
+</g>
+
+<g id="edge1" class="edge">
+<title>c16:e&#45;&gt;c10:w</title>
+<path fill="none" stroke="currentColor" d="M220,-76.5C233.69,-76.5 237.15,-66.33 246.21,-61.72"/>
+<polygon fill="currentColor" stroke="currentColor" points="247.02,-65.13 256,-59.5 245.47,-58.3 247.02,-65.13"/>
+</g>
+</g>
+</svg><figcaption>Schéma produit par <code>show</code> à cette étape.</figcaption></figure>
+    <pre class="gmf-dump">module \pas1
+  wire $abc$91$iopadmap$out
+  wire $abc$91$iopadmap$b
+  attribute \src &quot;pas1.v:2.17-2.18&quot;
+  wire input 1 \a
+  attribute \src &quot;pas1.v:3.17-3.18&quot;
+  wire input 2 \b
+  attribute \src &quot;pas1.v:4.17-4.20&quot;
+  wire output 3 \out
+  wire $abc$91$iopadmap$a
+  attribute \keep 1
+  cell \CC_IBUF $iopadmap$pas1.a
+    connect \Y $abc$91$iopadmap$a
+    connect \I \a
+  end
+  attribute \keep 1
+  cell \CC_OBUF $iopadmap$pas1.out
+    connect \A $abc$91$iopadmap$out
+    connect \O \out
+  end
+  attribute \keep 1
+  cell \CC_IBUF $iopadmap$pas1.b
+    connect \Y $abc$91$iopadmap$b
+    connect \I \b
+  end
+  attribute \src &quot;/share/gatemate/lut_tree_map.v:18.7-21.6&quot;
+  attribute \module_not_derived 1
+  cell \CC_LUT2 $abc$91$auto$blifparse.cc:397:parse_blif$92
+    parameter \INIT 4&#x27;1000
+    connect \I0 $abc$91$iopadmap$a
+    connect \I1 $abc$91$iopadmap$b
+    connect \O $abc$91$iopadmap$out
+  end
+end</pre>
+  </div>
+</div>
+<div class="gmf-r">
+  <button class="gmf-t" aria-expanded="false" data-i="12">
+    <span class="gmf-lab"><code>map_cells</code></span>
+    <span class="gmf-cells"><span class="tok-pub">2&times; CC_IBUF</span> <span class="tok-pub">1&times; CC_OBUF</span> <span class="tok-pub">1&times; CC_LUT2</span></span>
+    <span class="gmf-mark">inchangé</span>
+  </button>
+  <div class="gmf-p" hidden>
+    <p class="gmf-cmd">lut_map.v</p>
+    <p>Dernière traduction. Sans effet ici, la LUT étant déjà dans sa forme finale.</p>
+  </div>
+</div>
+<div class="gmf-r">
+  <button class="gmf-t" aria-expanded="false" data-i="13">
+    <span class="gmf-lab"><code>map_bufg</code></span>
+    <span class="gmf-cells"><span class="tok-pub">2&times; CC_IBUF</span> <span class="tok-pub">1&times; CC_OBUF</span> <span class="tok-pub">1&times; CC_LUT2</span></span>
+    <span class="gmf-mark">inchangé</span>
+  </button>
+  <div class="gmf-p" hidden>
+    <p class="gmf-cmd">clkbufmap</p>
+    <p>Insère les tampons d'horloge. Le design n'a pas d'horloge.</p>
+  </div>
+</div>
+<div class="gmf-r">
+  <button class="gmf-t" aria-expanded="false" data-i="14">
+    <span class="gmf-lab"><code>check</code></span>
+    <span class="gmf-cells"><span class="tok-pub">2&times; CC_IBUF</span> <span class="tok-pub">1&times; CC_OBUF</span> <span class="tok-pub">1&times; CC_LUT2</span></span>
+    <span class="gmf-mark">inchangé</span>
+  </button>
+  <div class="gmf-p" hidden>
+    <p class="gmf-cmd">hierarchy -check, stat -width, check -noinit</p>
+    <p>Vérification finale et décompte. Le résultat : trois tampons d'E/S et une table de vérité.</p>
+  </div>
+</div>
+</div>
+
+  <div class="aside">
+    <p><b>Reproduire ceci chez vous.</b> Le script ci-dessous génère les quinze instantanés et leurs schémas. Chaque appel doit répéter <code>-top</code>, <code>-luttree</code> et <code>-nomx8</code> : les options ne persistent pas d'un <code>-run</code> à l'autre.</p>
+  </div>
+  <div class="block">
+    <div class="block-head"><span>gm.ys — extrait</span><button class="copy" data-copy="cgm">Copier</button></div>
+    <pre id="cgm">read_verilog pas1.v
+
+synth_gatemate -top pas1 -luttree -nomx8 -run :begin
+write_rtlil gm/00_start.il
+
+synth_gatemate -top pas1 -luttree -nomx8 -run begin:prepare
+write_rtlil gm/01_begin.il
+
+<span class="tok-str"># ... un bloc par label, dans l'ordre :
+# begin prepare map_mult coarse map_bram map_ffram map_gates
+# map_io map_regs map_muxs map_luts map_cells map_bufg check</span>
+
+synth_gatemate -top pas1 -luttree -nomx8 -run check:
+write_rtlil gm/14_check.il</pre>
+  </div>
+  <div class="block">
+    <div class="block-head"><span>terminal</span><button class="copy" data-copy="cgm2">Copier</button></div>
+    <pre id="cgm2">mkdir -p gm && yosys gm.ys
+
+<span class="tok-str"># vue d'ensemble : les cellules de chaque étape</span>
+for f in gm/*.il; do
+  printf "%-18s " "$(basename $f .il)"
+  awk '/^module .pas1$/,/^end$/' "$f" \
+    | grep -oP '^\s+cell \\?\K[^ ]+' | sort | uniq -c | tr '\n' ' '
+  echo
+done
+
+<span class="tok-str"># les trois diffs qui comptent</span>
+diff gm/06_map_ffram.il gm/07_map_gates.il   <span class="tok-str"># $and devient $_AND_</span>
+diff gm/07_map_gates.il gm/08_map_io.il      <span class="tok-str"># les tampons apparaissent</span>
+diff gm/10_map_muxs.il  gm/11_map_luts.il    <span class="tok-str"># la porte devient une LUT</span>
+
+<span class="tok-str"># un schéma à une étape donnée</span>
+yosys -p "read_rtlil gm/11_map_luts.il; select pas1; \
+          show -format svg -prefix vue -viewer none"</pre>
+  </div>
+
+  <h3>Parcourir le flot GateMate</h3>
+  <div class="usage">
+    <span class="usage-k">À quoi sert ce bloc</span>
+    <p>Ce sont les <strong>commandes</strong> qui vous font avancer dans la carte ci-dessus, un palier à la fois. Même technique d'observation que la méthode 1 de la section 9 — <code>write_rtlil</code> puis <code>diff</code> — mais appliquée au flot GateMate au lieu du flot générique.</p>
+  </div>
+  <p>Le label de départ est inclus, celui d'arrivée exclu. Il faut répéter <code>-top</code> à chaque appel.</p>
+  <div class="block">
+    <div class="block-head"><span>prompt yosys&gt;</span><button class="copy" data-copy="c8">Copier</button></div>
+    <pre id="c8">read_verilog pas1.v
+synth_gatemate -top pas1 -run :prepare
+dump
+
+synth_gatemate -top pas1 -run prepare:coarse
+stat
+
+synth_gatemate -top pas1 -run coarse:map_gates
+stat
+
+synth_gatemate -top pas1 -run map_regs:map_luts
+stat    <span class="tok-str">← les premières cellules CC_ apparaissent ici</span></pre>
+  </div>
+
+  <h3>Le flot complet, jusqu'à la carte</h3>
+  <div class="block">
+    <div class="block-head"><span>flot complet GateMate</span><button class="copy" data-copy="c6">Copier</button></div>
+    <pre id="c6"><span class="tok-str"># 1. Synthèse</span>
+yosys -ql synth.log -p '
+    read_verilog -defer -sv top.v;
+    synth_gatemate -top top -luttree -nomx8;
+    write_json top.json'
+
+<span class="tok-str"># 2. Placement-routage</span>
+nextpnr-himbaechel \
+    --device CCGM1A1 \      <span class="tok-str">ou CCGM1A2</span>
+    --json top.json \
+    -o ccf=top.ccf \        <span class="tok-str">contraintes de broches</span>
+    -o out=impl.txt \
+    --router router2 \      <span class="tok-str">toujours router2</span>
+    --sdc top.sdc            <span class="tok-str">optionnel : contraintes d'horloge</span>
+
+<span class="tok-str"># 3. Génération du bitstream</span>
+gmpack impl.txt top.bit
+
+<span class="tok-str"># 4a. Programmation volatile, par JTAG</span>
+openFPGALoader -b gatemate_evb_jtag top.bit
+
+<span class="tok-str"># 4b. Programmation permanente, en flash</span>
+openFPGALoader -b gatemate_evb_jtag -f top.bit</pre>
+  </div>
+  <div class="aside">
+    <p><b>Où regarder en cas de problème.</b> Le <code>.json</code> produit par <code>write_json</code> contient la même netlist que le dernier dump RTLIL, dans un format que nextpnr sait lire. Si le placement échoue, ouvrez-le : vous y retrouverez vos noms <code>\</code> publics et vos attributs <code>\src</code>, ce qui permet de remonter à la ligne Verilog fautive.</p>
+  </div>
+</section>
+
+<div class="part" id="part-5">
+<span class="part-n">Partie V</span>
+<h2 class="part-t">Approfondir</h2>
+<p class="part-s">Écrire ses propres passes, et se faire la main.</p>
+</div>
+
+<section id="process">
+  <h2><span class="stage">8</span>Du texte aux objets C++</h2>
+  <p class="lede">Le dump textuel est la projection lisible d'une hiérarchie de classes C++. Cette correspondance est le cœur du mémoire de Parnow, et c'est elle qui vous permettra un jour d'écrire vos propres passes.</p>
+
+  <div class="map">
+    <div class="map-row">
+      <div class="map-l"><span class="tok-kw">process</span> <span class="tok-priv">$proc$pas1.v:4$1</span></div>
+      <div class="map-r"><b>RTLIL::Process</b><span>Contient un pointeur vers son module, un <code>CaseRule</code> racine et un vecteur de <code>SyncRule</code>.</span></div>
+    </div>
+    <div class="map-row">
+      <div class="map-l">  <span class="tok-kw">switch</span> <span class="tok-pub">\a</span></div>
+      <div class="map-r"><b>RTLIL::SwitchRule</b><span>Porte le <code>SigSpec</code> à évaluer et une pile de <code>CaseRule</code>. C'est l'imbrication de ces deux classes qui permet les <code>if</code> imbriqués.</span></div>
+    </div>
+    <div class="map-row">
+      <div class="map-l">    <span class="tok-kw">case</span> <span class="tok-const">1'1</span>
+    <span class="tok-kw">assign</span> <span class="tok-priv">$1\out[0:0]</span> <span class="tok-pub">\b</span></div>
+      <div class="map-r"><b>RTLIL::CaseRule</b><span>Trois vecteurs : <code>compare</code> (la condition), <code>actions</code> (les affectations) et <code>switches</code> (les branchements imbriqués). Sans branchement, seul <code>actions</code> est rempli.</span></div>
+    </div>
+    <div class="map-row">
+      <div class="map-l">  <span class="tok-kw">sync always</span>
+    <span class="tok-kw">update</span> <span class="tok-pub">\out</span> <span class="tok-priv">$0\out[0:0]</span></div>
+      <div class="map-r"><b>RTLIL::SyncRule</b><span>Un signal, un <code>SyncType</code> et des actions. C'est le <code>SyncType</code> qui décide du matériel produit.</span></div>
+    </div>
+    <div class="map-row">
+      <div class="map-l"><span class="tok-kw">connect</span> <span class="tok-pub">\out</span> <span class="tok-priv">$procmux$3_Y</span></div>
+      <div class="map-r"><b>RTLIL::SigSig</b><span>Une paire de <code>SigSpec</code>. Apparaît comme <code>connections</code> dans les modules et comme <code>actions</code> dans les process.</span></div>
+    </div>
+    <div class="map-row">
+      <div class="map-l"><span class="tok-const">1'0</span>   <span class="tok-str">{2'b00, 2'b11}</span></div>
+      <div class="map-r"><b>RTLIL::SigSpec</b><span>Conteneur de <code>SigChunk</code> et <code>SigBit</code>. Un <code>SigBit</code> constant a son pointeur <code>Wire</code> à NULL et porte un <code>RTLIL::State</code>.</span></div>
+    </div>
+  </div>
+
+  <h3>Les valeurs de <code>SyncType</code></h3>
+  <p>C'est la ligne <code>sync</code>, et elle seule, qui distingue un circuit combinatoire d'un circuit séquentiel. Pas la structure du <code>switch</code>.</p>
+  <div class="tbl-scroll">
+  <table>
+    <thead><tr><th>Valeur</th><th>Dans le dump</th><th>Matériel produit</th></tr></thead>
+    <tbody>
+      <tr><td><code>STa</code></td><td><code>sync always</code></td><td>Combinatoire pur — uniquement des multiplexeurs</td></tr>
+      <tr><td><code>STp</code></td><td><code>sync posedge \clk</code></td><td>Bascules, créées par <code>proc_dff</code></td></tr>
+      <tr><td><code>STn</code></td><td><code>sync negedge \clk</code></td><td>Bascules sur front descendant</td></tr>
+      <tr><td><code>ST1</code> / <code>ST0</code></td><td><code>sync high</code> / <code>low</code></td><td>Niveau actif — typiquement un reset asynchrone</td></tr>
+      <tr><td><code>STi</code></td><td><code>sync init</code></td><td>Valeur initiale, extraite par <code>proc_init</code></td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <h3>Les valeurs de <code>RTLIL::State</code></h3>
+  <p>Chaque bit constant porte un de ces six états.</p>
+  <div class="tbl-scroll">
+  <table>
+    <thead><tr><th><code>S0</code></th><th><code>S1</code></th><th><code>Sx</code></th><th><code>Sz</code></th><th><code>Sa</code></th><th><code>Sm</code></th></tr></thead>
+    <tbody><tr><td>zéro</td><td>un</td><td>indéfini</td><td>haute impédance</td><td>don't care</td><td>marqueur interne</td></tr></tbody>
+  </table>
+  </div>
+</section>
+
+<section id="labo">
+  <h2><span class="stage">9</span>Votre banc d&rsquo;essai</h2>
+  <p class="lede">Trois méthodes de travail, de la plus légère à la plus puissante. La deuxième est celle qui fait vraiment progresser.</p>
+
+  <div class="aside">
+    <p><b>Deux flots, une seule technique.</b> Un point qui prête à confusion, parce qu'on peut parcourir deux choses différentes.</p>
+    <p>Le <strong>flot générique</strong> — <code>proc</code>, <code>opt</code>, <code>fsm</code>, <code>memory</code>, <code>techmap</code> — ne cible aucune puce. C'est celui de la méthode 1 ci-dessous, et c'est le bon pour apprendre le RTLIL : les passes sont courtes et leur effet est isolable.</p>
+    <p>Le <strong>flot GateMate</strong> — les quatorze labels de <code>synth_gatemate</code> — descend jusqu'aux primitives. Il se parcourt avec <code>-run</code>, comme le montre la section 7, et sa carte s'y trouve également.</p>
+    <p>La technique d'observation, elle, est la même dans les deux cas : figer l'état avec <code>write_rtlil</code>, puis comparer deux instantanés successifs avec <code>diff</code>. Ne parcourez pas les deux flots à la fois — vous obtiendriez des états incomparables.</p>
+  </div>
+
+  <h3>Méthode 1 — figer chaque étape du flot générique</h3>
+  <p>Le format <code>.il</code> est le seul export fidèle du RTLIL : aucune perte, contrairement au JSON ou au Verilog. <code>tee</code> capture la sortie d'une commande dans un fichier en plus de la console.</p>
+  <div class="block">
+    <div class="block-head"><span>lab.ys</span><button class="copy" data-copy="c1">Copier</button></div>
+    <pre id="c1">read_verilog lab.v
+hierarchy -check -top lab
+tee -o 00_stat.txt stat
+write_rtlil 00_hierarchy.il
+
+proc
+tee -o 01_stat.txt stat
+write_rtlil 01_proc.il
+
+opt
+tee -o 02_stat.txt stat
+write_rtlil 02_opt.il
+
+fsm
+write_rtlil 03_fsm.il
+
+memory
+write_rtlil 04_memory.il
+
+techmap
+write_rtlil 05_techmap.il</pre>
+  </div>
+  <p>Puis comparez deux instantanés successifs — c'est là que se trouve l'information :</p>
+  <div class="block">
+    <div class="block-head"><span>terminal</span><button class="copy" data-copy="c2">Copier</button></div>
+    <pre id="c2">yosys lab.ys
+diff 00_hierarchy.il 01_proc.il | less</pre>
+  </div>
+  <p>Pour faire la même chose sur le flot GateMate, remplacez les passes par les labels et gardez exactement la même technique : voir <a href="#gatemate">« Parcourir le flot GateMate », section 7</a>.</p>
+
+  <h3>Méthode 2 — l'inspection interactive</h3>
+  <p><code>select</code> est votre loupe : elle isole une portion du design avant de l'afficher ou de lui appliquer une passe. C'est l'outil le plus formateur de Yosys.</p>
+  <div class="block">
+    <div class="block-head"><span>prompt yosys&gt;</span><button class="copy" data-copy="c3">Copier</button></div>
+    <pre id="c3">select -list          # tout ce qui existe
+select t:$mux         # les cellules de type $mux
+dump                  # affiche la sélection courante
+select t:$dff %x      # les $dff et tout ce qui leur est connecté
+select \out %ci*      # tout ce qui alimente \out, en remontant
+show -format svg      # schéma via graphviz</pre>
+  </div>
+  <p>Pour isoler l'effet d'une seule sous-passe, dumpez la même sélection avant et après :</p>
+  <div class="block">
+    <div class="block-head"><span>prompt yosys&gt;</span><button class="copy" data-copy="c4">Copier</button></div>
+    <pre id="c4">proc
+select t:$mux; dump -o avant.txt
+opt_expr
+select t:$mux; dump -o apres.txt</pre>
+  </div>
+
+  <h3>Méthode 3 — modifier</h3>
+  <p>Deux voies. Le RTLIL étant du texte, <code>read_rtlil</code> relit un <code>.il</code> édité à la main : utile pour comprendre, fragile en pratique. La vraie porte d'entrée est la passe personnalisée, compilée en plugin :</p>
+  <div class="block">
+    <div class="block-head"><span>terminal</span><button class="copy" data-copy="c5">Copier</button></div>
+    <pre id="c5">yosys-config --build ma_passe.so ma_passe.cc
+yosys -m ma_passe.so -p "ma_passe" design.v</pre>
+  </div>
+  <p>Le dossier <code>passes/</code> des sources contient environ cent cinquante passes réelles à lire comme modèles. Le fork FHDO-ICLAB ajoute des exemples d'API Python qui évitent de passer par le C++ pour explorer la structure.</p>
+
+  <h3>Progression</h3>
+  <ul class="checklist" id="checklist">
+    <li><input type="checkbox" id="k1"><label for="k1">Lire un dump et dire, pour chaque fil, s'il est public ou auto-généré</label></li>
+    <li><input type="checkbox" id="k2"><label for="k2">Prédire si un bout de Verilog produira une cellule ou un <code>process</code></label></li>
+    <li><input type="checkbox" id="k3"><label for="k3">Retirer le <code>else</code> et observer <code>proc_dlatch</code> inférer un verrou</label></li>
+    <li><input type="checkbox" id="k4"><label for="k4">Ajouter une horloge et voir <code>sync always</code> devenir <code>sync posedge</code></label></li>
+    <li><input type="checkbox" id="k5"><label for="k5">Lancer <code>opt</code> et expliquer chaque fil disparu</label></li>
+    <li><input type="checkbox" id="k6"><label for="k6">Ajouter un tableau de registres et suivre la cellule <code>$mem_v2</code></label></li>
+    <li><input type="checkbox" id="k7"><label for="k7">Écrire un <code>case</code> à quatre branches et compter les <code>$mux</code> en cascade</label></li>
+    <li><input type="checkbox" id="k11"><label for="k11">Écrire <code>assign p = a * b;</code> et suivre le <code>$mul</code> jusqu'au <code>CC_MULT</code></label></li>
+    <li><input type="checkbox" id="k12"><label for="k12">Ouvrir <code>share/yosys/gatemate/mux_map.v</code> et y lire la règle du multiplexeur</label></li>
+    <li><input type="checkbox" id="k8"><label for="k8">Décortiquer <code>synth_gatemate</code> avec <code>-run :prepare</code>, puis étape par étape</label></li>
+    <li><input type="checkbox" id="k15"><label for="k15">Compter les portes avant <code>map_luts</code>, puis constater qu'il n'en reste aucune après</label></li>
+    <li><input type="checkbox" id="k16"><label for="k16">Lire le paramètre <code>INIT</code> d'un <code>CC_LUT2</code> et retrouver la fonction qu'il réalise</label></li>
+    <li><input type="checkbox" id="k13"><label for="k13">Trouver l'étape exacte où la première cellule <code>CC_</code> apparaît dans votre design</label></li>
+    <li><input type="checkbox" id="k14"><label for="k14">Comparer <code>stat</code> avec et sans <code>-nomult</code> sur un design contenant <code>a * b</code></label></li>
+    <li><input type="checkbox" id="k9"><label for="k9">Identifier la première cellule <code>CC_</code> et la relier à sa ligne Verilog via <code>\src</code></label></li>
+    <li><input type="checkbox" id="k10"><label for="k10">Écrire une passe qui compte les cellules par type et l'exécuter en plugin</label></li>
+  </ul>
+  <p class="progress-note">Vos coches restent dans ce navigateur. Elles ne sont ni partagées ni visibles ailleurs.</p>
+</section>
+
+<div class="part" id="part-6">
+<span class="part-n">Partie VI</span>
+<h2 class="part-t">Référence</h2>
+</div>
+
+<section id="abreviations">
+  <h2><span class="stage">10</span>Abréviations et vocabulaire</h2>
+  <p class="lede">Tout ce qui apparaît sur cette page, dans vos sorties de terminal et dans la documentation Cologne Chip. Les entrées en couleur sont celles qui reviennent le plus souvent dans un dump RTLIL.</p>
+
+  <h3>Sigles</h3>
+  <div class="gloss">
+    <div class="gi"><b>ABC</b><span>Outil externe d'optimisation logique et de mapping, développé à Berkeley. Yosys l'appelle pour minimiser le nombre de LUT.</span></div>
+    <div class="gi"><b>AIG</b><span>And-Inverter Graph. Représentation d'un circuit n'utilisant que des portes ET et des inverseurs, format de travail interne d'ABC.</span></div>
+    <div class="gi"><b>ALU</b><span>Arithmetic Logic Unit. L'étage de calcul entier d'un bloc DSP.</span></div>
+    <div class="gi"><b>ASIC</b><span>Application Specific Integrated Circuit. Puce gravée pour une seule fonction, par opposition au FPGA reconfigurable.</span></div>
+    <div class="gi"><b>AST</b><span>Abstract Syntax Tree. L'arbre que le parseur construit à partir du texte Verilog, avant la génération du RTLIL.</span></div>
+    <div class="gi"><b>BLIF</b><span>Berkeley Logic Interchange Format. Format de netlist échangé avec ABC.</span></div>
+    <div class="gi"><b>BRAM</b><span>Block RAM. Bloc mémoire câblé dans le FPGA. Sur GateMate, 20 ou 40 kbits par bloc.</span></div>
+    <div class="gi"><b>CCF</b><span>Cologne Constraint File. Le fichier qui associe les ports de votre module top aux broches physiques du GateMate.</span></div>
+    <div class="gi"><em><b>CPE</b></em><span>Cologne Programmable Element. La cellule de base du GateMate : LUT 8 entrées, ou double LUT 4 entrées, ou multiplexeur 4 entrées, ou additionneur, ou multiplieur 2×2, plus deux registres.</span></div>
+    <div class="gi"><b>DPSRAM</b><span>Dual-Ported Static RAM. Mémoire lisible et écrivable par deux ports simultanément. C'est la forme des BRAM du GateMate.</span></div>
+    <div class="gi"><b>DSP</b><span>Digital Signal Processing. Par extension, le bloc câblé multiplieur et accumulateur qu'on trouve dans la plupart des FPGA — mais pas dans le GateMate.</span></div>
+    <div class="gi"><b>EDIF</b><span>Electronic Design Interchange Format. Format de netlist historique, encore accepté par certains outils.</span></div>
+    <div class="gi"><em><b>FF</b></em><span>Flip-Flop, la bascule. Élément de mémoire sensible au front d'horloge. Deux par CPE sur GateMate.</span></div>
+    <div class="gi"><b>FFT</b><span>Fast Fourier Transform. Un des usages classiques des blocs DSP.</span></div>
+    <div class="gi"><b>FIR</b><span>Finite Impulse Response. Filtre numérique bâti sur une suite de multiplications-accumulations.</span></div>
+    <div class="gi"><b>FPGA</b><span>Field Programmable Gate Array. Circuit logique reconfigurable après fabrication.</span></div>
+    <div class="gi"><b>FSM</b><span>Finite State Machine, l'automate à états. Détecté et optimisé par la passe <code>fsm</code>.</span></div>
+    <div class="gi"><b>GPIO</b><span>General Purpose Input Output. Broches d'entrée-sortie banalisées.</span></div>
+    <div class="gi"><b>HDL</b><span>Hardware Description Language. Verilog et VHDL en sont les deux principaux.</span></div>
+    <div class="gi"><b>JTAG</b><span>Interface de test et de programmation normalisée, utilisée pour charger le bitstream.</span></div>
+    <div class="gi"><em><b>LUT</b></em><span>Look-Up Table. Petite table de vérité programmable qui réalise n'importe quelle fonction de ses n entrées. L'unité de mesure de la taille d'un FPGA.</span></div>
+    <div class="gi"><b>MAC</b><span>Multiply-Accumulate. Multiplier deux nombres et ajouter le résultat à un total courant. L'opération de base du filtrage et du calcul neuronal.</span></div>
+    <div class="gi"><b>MSB, LSB</b><span>Most et Least Significant Bit. Le bit de poids fort et le bit de poids faible d'un vecteur.</span></div>
+    <div class="gi"><em><b>MUX</b></em><span>Multiplexeur. Aiguillage qui sélectionne une entrée parmi plusieurs.</span></div>
+    <div class="gi"><b>PLL</b><span>Phase-Locked Loop. Circuit qui fabrique des horloges dérivées de l'horloge d'entrée. Primitive <code>CC_PLL</code> sur GateMate.</span></div>
+    <div class="gi"><b>PnR</b><span>Place and Route, le placement-routage. Décide où chaque cellule atterrit physiquement et par quels fils elles se relient. C'est le travail de nextpnr.</span></div>
+    <div class="gi"><b>RTL</b><span>Register Transfer Level. Niveau de description où l'on raisonne en registres et en transferts entre eux, sans décrire les portes.</span></div>
+    <div class="gi"><em><b>RTLIL</b></em><span>Register Transfer Level Intermediate Language. La structure de données interne de Yosys, et le sujet de cette page.</span></div>
+    <div class="gi"><b>SDC</b><span>Synopsys Design Constraints. Fichier décrivant les contraintes d'horloge, passé optionnellement à nextpnr.</span></div>
+    <div class="gi"><b>SerDes</b><span>Serializer-Deserializer. Interface série rapide, présente sur GateMate à 2,5 ou 5 Gbit/s.</span></div>
+    <div class="gi"><b>SPI</b><span>Serial Peripheral Interface. Bus série, notamment utilisé pour charger le bitstream depuis une flash externe.</span></div>
+    <div class="gi"><b>VHDL</b><span>L'autre grand langage de description matérielle. Yosys ne le lit pas nativement dans sa version libre.</span></div>
+  </div>
+
+  <h3>Vocabulaire de la synthèse</h3>
+  <div class="gloss">
+    <div class="gi"><b>Bitstream</b><span>Le fichier binaire final qui configure le FPGA. Produit par <code>gmpack</code> sur GateMate.</span></div>
+    <div class="gi"><b>Cellule générique</b><span>Cellule RTLIL dont le type commence par <code>$</code>. Abstraite et paramétrable, elle ne correspond encore à aucun matériel réel.</span></div>
+    <div class="gi"><b>Chemin critique</b><span>Le trajet le plus lent entre deux bascules. Il fixe à lui seul la fréquence maximale du circuit entier.</span></div>
+    <div class="gi"><b>Combinatoire</b><span>Logique dont la sortie ne dépend que des entrées présentes, sans mémoire. Un multiplexeur, une porte logique.</span></div>
+    <div class="gi"><b>Contrainte</b><span>Information que vous fournissez à l'outil et qu'il ne peut pas deviner : affectation des broches, fréquence d'horloge visée.</span></div>
+    <div class="gi"><b>Élaboration</b><span>Étape où la hiérarchie des modules est résolue, les paramètres propagés et le module racine désigné. C'est le travail de <code>hierarchy</code>.</span></div>
+    <div class="gi"><b>Front</b><span>L'instant de transition d'un signal, montant ou descendant. Ce à quoi réagit une bascule.</span></div>
+    <div class="gi"><b>Inférence</b><span>Le fait pour l'outil de reconnaître un motif dans votre code et d'en déduire un composant matériel. Une multiplication infère un multiplieur, un <code>always</code> incomplet infère un verrou.</span></div>
+    <div class="gi"><b>Netlist</b><span>Liste des composants et de leurs interconnexions. Le résultat de la synthèse, et ce que consomme le placement-routage.</span></div>
+    <div class="gi"><b>Niveau</b><span>La valeur haute ou basse d'un signal, par opposition au front. Ce à quoi réagit un verrou.</span></div>
+    <div class="gi"><b>Passe</b><span>Un algorithme appliqué au design. Yosys en compte environ cent cinquante, enchaînables à volonté.</span></div>
+    <div class="gi"><b>Pipeline</b><span>Découper un calcul long en étages séparés par des bascules, pour monter en fréquence au prix d'une latence en cycles.</span></div>
+    <div class="gi"><b>Primitive</b><span>Cellule correspondant à un vrai bloc du silicium. Sur GateMate, tout ce qui commence par <code>CC_</code>.</span></div>
+    <div class="gi"><b>Séquentiel</b><span>Logique dont la sortie dépend de l'histoire passée, donc qui contient de la mémoire. Tout ce qui découle d'une horloge.</span></div>
+    <div class="gi"><b>Sigil</b><span>Le caractère initial d'un nom RTLIL. <code>\</code> pour un nom que vous avez écrit, <code>$</code> pour un nom fabriqué par Yosys.</span></div>
+    <div class="gi"><b>Synthèse</b><span>La traduction d'une description comportementale en netlist. Ce que fait Yosys, par opposition au placement-routage.</span></div>
+    <div class="gi"><b>SRAM de configuration</b><span>Les cellules mémoire qui contiennent le contenu des LUT et l'état des interrupteurs de routage. Remplies au chargement du bitstream, inchangées ensuite, perdues à l'extinction.</span></div>
+    <div class="gi"><b>INIT</b><span>Le paramètre qui porte le contenu d'une table de vérité. <code>4'b1000</code> sur une LUT2 donne un ET, <code>4'b1110</code> un OU.</span></div>
+    <div class="gi"><b>Arbre de LUT</b><span>Plusieurs petites tables de vérité chaînées pour réaliser une fonction à plus d'entrées qu'une seule n'en accepte. Sur GateMate, <code>CC_L2T4</code> et <code>CC_L2T5</code>.</span></div>
+    <div class="gi"><b>Repliement d'inverseur</b><span>Absorber un <code>~</code> dans la table de vérité voisine plutôt que d'ajouter un composant. C'est le travail de <code>gatemate_foldinv</code>, et la raison pour laquelle un inverseur ne coûte rien.</span></div>
+    <div class="gi"><b>Techmap</b><span>Le mapping technologique. Traduit les cellules génériques en primitives de la puce visée. Le moment où les <code>$</code> deviennent des <code>CC_</code>.</span></div>
+    <div class="gi"><b>Temps de maintien</b><span>Durée minimale pendant laquelle l'entrée d'une bascule doit rester stable <em>après</em> le front.</span></div>
+    <div class="gi"><b>Temps de préparation</b><span>Durée minimale pendant laquelle l'entrée d'une bascule doit être stable <em>avant</em> le front. En anglais, setup time.</span></div>
+    <div class="gi"><b>Transparent</b><span>État d'un verrou dont la validation est active : sa sortie recopie son entrée en continu.</span></div>
+    <div class="gi"><b>Verrou</b><span>Latch en anglais. Mémoire sensible au niveau, à éviter quand elle n'est pas voulue.</span></div>
+  </div>
+</section>
+
+<section id="litterature">
+  <h2><span class="stage">11</span>Littérature</h2>
+  <p class="lede">Les sources sur lesquelles cette page s'appuie, et ce que chacune a réellement servi à établir. Là où deux sources divergent, la documentation officielle du fabricant l'emporte sur tout le reste.</p>
+
+  <h3>Documentation Cologne Chip</h3>
+  <ol class="lit">
+    <li>
+      <span class="ti">UG1001 — GateMate FPGA Primitives Library User Guide<span class="tagd">129 pages</span></span>
+      <span class="au">Cologne Chip AG, mars 2025</span>
+      <span class="use">Source d'autorité de la section 7 pour les primitives. C'est elle qui a confirmé <code>CC_DFF</code> et <code>CC_DLT</code>, que je décrivais jusque-là comme « les registres du CPE » faute de certitude. Elle a surtout corrigé une erreur : la bibliothèque ne contient <strong>pas de <code>CC_MX8</code></strong>, seulement <code>CC_MX2</code> et <code>CC_MX4</code>. C'est d'elle que viennent la composition exacte du <code>CC_L2T4</code> en trois LUT2, le fait qu'un CPE en loge deux indépendants, et la combinaison <code>CC_L2T4</code> plus <code>CC_L2T5</code> qui forme l'arbre à 8 entrées. Enfin, sa description du <code>CC_MULT</code> — multiplieur signé de largeur libre, plaçable n'importe où dans la matrice, avec registres de pipeline optionnels en <code>CC_DFF</code> — fonde toute la brique DSP de la section 5.</span>
+    </li>
+    <li>
+      <span class="ti">UG1002 — GateMate FPGA Toolchain Installation User Guide<span class="tagd">mai 2026</span></span>
+      <span class="au">Cologne Chip AG</span>
+      <span class="use">Source de la section 7 pour le flot complet. Sa révision de mai 2026 acte le passage à nextpnr. C'est elle qui établit que <code>-luttree</code> et <code>-nomx8</code> sont <strong>obligatoires</strong> et non facultatifs — je les présentais comme des réglages d'optimisation. Elle fournit aussi les options complètes de <code>nextpnr-himbaechel</code>, de <code>gmpack</code> et d'<code>openFPGALoader</code>, ainsi que la recommandation de relire le journal et d'appeler <code>stat</code> après chaque synthèse.</span>
+    </li>
+    <li>
+      <span class="ti">GateMate FPGA — page produit et derniers builds</span>
+      <span class="au"><a href="https://colognechip.com/programmable-logic/gatemate/">colognechip.com/programmable-logic/gatemate</a>, section « get latest builds »</span>
+      <span class="use">Architecture du CPE : configuration en LUT 8 entrées, double LUT 4 entrées, multiplexeur 4 entrées, additionneur cascadable ou multiplieur 2×2, avec deux registres par élément. Source des chiffres de la famille — 20 480 CPEs sur le A1, 40 960 registres — et du fait, central à la section 5, qu'<strong>aucun bloc DSP n'est câblé</strong> dans cette architecture.</span>
+    </li>
+    <li>
+      <span class="ti">GateMate Toolchain Quickstart</span>
+      <span class="au"><a href="https://colognechip.com/programmable-logic/gatemate/gatemate-toolchain-quickstart/">colognechip.com — gatemate-toolchain-quickstart</a></span>
+      <span class="use">Version en ligne et continûment mise à jour de la procédure du UG1002. À consulter avant le PDF en cas de doute sur une option de ligne de commande.</span>
+    </li>
+    <li>
+      <span class="ti">DS1001, DS1002, DS1003 — fiches techniques</span>
+      <span class="au">Cologne Chip AG, référencées par le UG1002</span>
+      <span class="use">Non utilisées ici, mais ce sont elles qu'il faudra ouvrir pour les caractéristiques électriques du CCGM1A1 et CCGM1A2, la carte programmateur et la carte d'évaluation — donc pour écrire un fichier de contraintes <code>.ccf</code> correct.</span>
+    </li>
+  </ol>
+
+  <h3>Yosys et RTLIL</h3>
+  <ol class="lit" start="6">
+    <li>
+      <span class="ti">Yosys Open SYnthesis Suite — manuel et documentation des passes</span>
+      <span class="au"><a href="https://yosyshq.net/yosys/">yosyshq.net/yosys</a></span>
+      <span class="use">Référence première pour le comportement des commandes, la grammaire RTLIL de la section 4 et le rôle de chaque passe de la section 6.</span>
+    </li>
+    <li>
+      <span class="ti">Analyse der Yosys Prozesse, die Verilog in die interne Datenstruktur RTLIL konvertieren<span class="tagd">Bachelorarbeit</span></span>
+      <span class="au">C. Parnow, TH Köln et FH Dortmund, 2022. Second rapporteur : Prof. Dr.-Ing. M. Karagounis</span>
+      <span class="use">Fonde toute la section 8, et la chaîne de traduction de la section 2. Son chapitre 4 établit la correspondance entre le dump textuel et les classes C++ : <code>RTLIL::Process</code>, <code>SwitchRule</code>, <code>CaseRule</code> avec ses trois vecteurs, <code>SyncRule</code> et ses valeurs de <code>SyncType</code>, <code>SigSpec</code> décomposé en <code>SigChunk</code> et <code>SigBit</code>, et les six états de <code>RTLIL::State</code>. C'est le seul document qui fasse ce pont, et c'est lui qui rend possible l'écriture d'une passe personnalisée.</span>
+    </li>
+    <li>
+      <span class="ti">Fork FHDO-ICLAB de Yosys</span>
+      <span class="au"><a href="https://github.com/FHDO-ICLAB/yosys">github.com/FHDO-ICLAB/yosys</a> — <a href="https://github.com/FHDO-ICLAB/yosys/tree/master/examples/python-api">exemples d'API Python</a></span>
+      <span class="use">Permet d'explorer la structure RTLIL depuis Python plutôt qu'en C++. C'est la voie la plus accessible vers la méthode 3 de la section 9, quand écrire un plugin compilé paraît prématuré.</span>
+    </li>
+    <li>
+      <span class="ti">Yosys Installation on Ubuntu 22.04.5 LTS<span class="tagd">vidéo</span></span>
+      <span class="au"><a href="https://www.youtube.com/watch?v=dhdPl0LOzo8">youtube.com/watch?v=dhdPl0LOzo8</a></span>
+      <span class="use">Procédure d'installation en vidéo, utile comme repère visuel à côté de l'annexe A du UG1002.</span>
+    </li>
+    <li>
+      <span class="ti">Ressource vidéo complémentaire<span class="tagd">vidéo</span></span>
+      <span class="au"><a href="https://www.youtube.com/watch?v=AMkFuS_ZkrM">youtube.com/watch?v=AMkFuS_ZkrM</a></span>
+      <span class="use">Référence ajoutée à la demande. Le contenu n'a pas pu être vérifié au moment de la rédaction de cette page.</span>
+    </li>
+  </ol>
+
+  <h3>Distribution des outils</h3>
+  <ol class="lit" start="11">
+    <li>
+      <span class="ti">OSS CAD Suite — paquets précompilés</span>
+      <span class="au"><a href="https://github.com/YosysHQ/oss-cad-suite-build/releases">github.com/YosysHQ/oss-cad-suite-build/releases</a></span>
+      <span class="use">C'est la distribution que Cologne Chip recommande officiellement, et elle mérite d'être connue même quand on compile depuis les sources. Elle réunit <code>yosys</code>, <code>nextpnr-himbaechel</code>, <code>gmpack</code> et <code>openFPGALoader</code> déjà configurés, plus <code>slang</code>, <code>ghdl</code>, <code>iverilog</code>, <code>verilator</code>, <code>cocotb</code>, <code>surfer</code> et <code>gtkwave</code>. Il suffit d'extraire l'archive et de faire <code>source environment</code>.</span>
+    </li>
+    <li>
+      <span class="ti">Votre propre installation</span>
+      <span class="au"><code>help &lt;commande&gt;</code> et le dossier <code>share/yosys/gatemate/</code></span>
+      <span class="use">Fait autorité sur tout ce qui précède, cette page comprise. Les noms de primitives et les étapes du flot bougent d'une version à l'autre : <code>help synth_gatemate</code> et <code>cells_sim.v</code> disent la vérité de la version que vous avez compilée.</span>
+    </li>
+  </ol>
+</section>
+
+<footer>
+  <p>Page construite à partir de vos sorties de terminal, des documents ci-dessus et de la documentation officielle Cologne Chip. Les corrections apportées en cours de route — <code>CC_MX8</code> inexistant, <code>-nomx8</code> obligatoire, noms des fichiers de mapping — sont signalées dans la section Littérature.</p>
+</footer>
+
+</div>
+
+<script>
+(function(){
+"use strict";
+
+/* ---------- données : états RTLIL réels capturés ---------- */
+/* préfixe de ligne : ' ' inchangé, '+' ajouté, '-' retiré */
+
+var DATA = {
+  assign:{
+    label:"assign",
+    steps:[
+      {
+        cmd:"read_verilog pas1.v",
+        name:"read_verilog",
+        counts:"4 wires · 1 cells · 0 processes",
+        notes:[
+          "Le frontend fait deux conversions en une commande : texte vers AST, puis AST vers RTLIL. Un <code>assign</code> continu est une expression combinatoire pure, donc traduisible directement en cellule.",
+          "La cellule <code>$and</code> est <b>générique</b> : ses paramètres <code>A_WIDTH</code>, <code>B_WIDTH</code>, <code>Y_WIDTH</code> valent 1 ici, mais la même cellule représenterait huit portes physiques avec des bus de 8 bits.",
+          "Le fil <code>$and$pas1.v:4$1_Y</code> n'existe pas dans votre Verilog. Yosys l'a fabriqué parce qu'une cellule doit avoir un fil de sortie nommé — d'où 4 fils pour un circuit qui en demande 3."
+        ],
+        dump:
+" autoidx 2\n"+
+"\n"+
+" attribute \\src \"pas1.v:1.1-5.10\"\n"+
+" attribute \\cells_not_processed 1\n"+
+" module \\pas1\n"+
+"\n"+
+"   attribute \\src \"pas1.v:2.16-2.17\"\n"+
+"   wire input 1 \\a\n"+
+"\n"+
+"   attribute \\src \"pas1.v:2.19-2.20\"\n"+
+"   wire input 2 \\b\n"+
+"\n"+
+"   attribute \\src \"pas1.v:3.17-3.20\"\n"+
+"   wire output 3 \\out\n"+
+"\n"+
+"   attribute \\src \"pas1.v:4.18-4.23\"\n"+
+"   wire $and$pas1.v:4$1_Y\n"+
+"\n"+
+"   attribute \\src \"pas1.v:4.18-4.23\"\n"+
+"   cell $and $and$pas1.v:4$1\n"+
+"     parameter \\A_SIGNED 0\n"+
+"     parameter \\B_SIGNED 0\n"+
+"     parameter \\A_WIDTH 1\n"+
+"     parameter \\B_WIDTH 1\n"+
+"     parameter \\Y_WIDTH 1\n"+
+"     connect \\A \\a\n"+
+"     connect \\B \\b\n"+
+"     connect \\Y $and$pas1.v:4$1_Y\n"+
+"   end\n"+
+"\n"+
+"   connect \\out $and$pas1.v:4$1_Y\n"+
+" end"
+      },
+      {
+        cmd:"hierarchy -check -top pas1",
+        name:"hierarchy",
+        counts:"4 wires · 1 cells · 0 processes",
+        notes:[
+          "<code>stat</code> est rigoureusement identique, mais le RTLIL a changé sur deux lignes.",
+          "L'attribut <code>\\top 1</code> apparaît. Toutes les passes suivantes le lisent : sans lui, <code>opt_clean</code> ne sait pas quels ports préserver, et un port du module top est une broche physique, pas un fil optimisable.",
+          "L'attribut <code>\\cells_not_processed</code> disparaît. Le design passe de l'état « sortie de parser » à l'état « élaboré, prêt pour les passes »."
+        ],
+        dump:
+" autoidx 2\n"+
+"\n"+
+" attribute \\src \"pas1.v:1.1-5.10\"\n"+
+"-attribute \\cells_not_processed 1\n"+
+"+attribute \\top 1\n"+
+" module \\pas1\n"+
+"\n"+
+"   attribute \\src \"pas1.v:2.16-2.17\"\n"+
+"   wire input 1 \\a\n"+
+"\n"+
+"   attribute \\src \"pas1.v:2.19-2.20\"\n"+
+"   wire input 2 \\b\n"+
+"\n"+
+"   attribute \\src \"pas1.v:3.17-3.20\"\n"+
+"   wire output 3 \\out\n"+
+"\n"+
+"   attribute \\src \"pas1.v:4.18-4.23\"\n"+
+"   wire $and$pas1.v:4$1_Y\n"+
+"\n"+
+"   attribute \\src \"pas1.v:4.18-4.23\"\n"+
+"   cell $and $and$pas1.v:4$1\n"+
+"     parameter \\A_SIGNED 0\n"+
+"     parameter \\B_SIGNED 0\n"+
+"     parameter \\A_WIDTH 1\n"+
+"     parameter \\B_WIDTH 1\n"+
+"     parameter \\Y_WIDTH 1\n"+
+"     connect \\A \\a\n"+
+"     connect \\B \\b\n"+
+"     connect \\Y $and$pas1.v:4$1_Y\n"+
+"   end\n"+
+"\n"+
+"   connect \\out $and$pas1.v:4$1_Y\n"+
+" end"
+      },
+      {
+        cmd:"proc",
+        name:"proc",
+        counts:"4 wires · 1 cells · 0 processes",
+        notes:[
+          "Rien ne change. Les douze sous-passes affichent toutes un compteur à zéro.",
+          "C'est la leçon : <code>proc</code> n'opère que sur des objets <code>process</code>, et ce design n'en a jamais contenu. Son périmètre est exactement celui des blocs <code>always</code>.",
+          "Basculez sur le chemin B pour la voir travailler pour de vrai."
+        ],
+        dump:
+" autoidx 2\n"+
+"\n"+
+" attribute \\src \"pas1.v:1.1-5.10\"\n"+
+" attribute \\top 1\n"+
+" module \\pas1\n"+
+"\n"+
+"   attribute \\src \"pas1.v:2.16-2.17\"\n"+
+"   wire input 1 \\a\n"+
+"\n"+
+"   attribute \\src \"pas1.v:2.19-2.20\"\n"+
+"   wire input 2 \\b\n"+
+"\n"+
+"   attribute \\src \"pas1.v:3.17-3.20\"\n"+
+"   wire output 3 \\out\n"+
+"\n"+
+"   attribute \\src \"pas1.v:4.18-4.23\"\n"+
+"   wire $and$pas1.v:4$1_Y\n"+
+"\n"+
+"   attribute \\src \"pas1.v:4.18-4.23\"\n"+
+"   cell $and $and$pas1.v:4$1\n"+
+"     parameter \\A_SIGNED 0\n"+
+"     parameter \\B_SIGNED 0\n"+
+"     parameter \\A_WIDTH 1\n"+
+"     parameter \\B_WIDTH 1\n"+
+"     parameter \\Y_WIDTH 1\n"+
+"     connect \\A \\a\n"+
+"     connect \\B \\b\n"+
+"     connect \\Y $and$pas1.v:4$1_Y\n"+
+"   end\n"+
+"\n"+
+"   connect \\out $and$pas1.v:4$1_Y\n"+
+" end"
+      }
+    ]
+  },
+
+  always:{
+    label:"always",
+    steps:[
+      {
+        cmd:"read_verilog pas1.v",
+        name:"read_verilog",
+        counts:"5 wires · 0 cells · 1 processes",
+        notes:[
+          "<b>Zéro cellule.</b> Aucune porte n'a été créée : tout le comportement est enfermé dans un <code>process</code>. C'est la différence fondamentale avec le chemin A.",
+          "Les fils <code>$0\\out</code> et <code>$1\\out</code> sont des valeurs intermédiaires numérotées par niveau, pas des fils physiques. <code>$1\\out</code> est la valeur calculée par l'arbre de décision, <code>$0\\out</code> la valeur finale à appliquer.",
+          "Le <code>switch</code> est votre <code>if/else</code>. Les <code>case</code> sont évalués du haut vers le bas, premier match gagnant — d'où une cascade de multiplexeurs quand il y en a beaucoup.",
+          "La ligne <code>sync always</code> annonce du combinatoire pur. Si c'était <code>sync posedge \\clk</code>, <code>proc_dff</code> produirait des bascules."
+        ],
+        dump:
+" autoidx 2\n"+
+"\n"+
+" attribute \\src \"pas1.v:1.1-10.10\"\n"+
+" module \\pas1\n"+
+"\n"+
+"   attribute \\src \"pas1.v:2.16-2.17\"\n"+
+"   wire input 1 \\a\n"+
+"\n"+
+"   attribute \\src \"pas1.v:2.19-2.20\"\n"+
+"   wire input 2 \\b\n"+
+"\n"+
+"   attribute \\src \"pas1.v:3.17-3.20\"\n"+
+"   wire output 3 \\out\n"+
+"\n"+
+"   attribute \\src \"pas1.v:4.5-9.8\"\n"+
+"   wire $0\\out[0:0]\n"+
+"\n"+
+"   attribute \\src \"pas1.v:4.5-9.8\"\n"+
+"   wire $1\\out[0:0]\n"+
+"\n"+
+"   attribute \\src \"pas1.v:4.5-9.8\"\n"+
+"   process $proc$pas1.v:4$1\n"+
+"     assign { } { }\n"+
+"     assign $0\\out[0:0] $1\\out[0:0]\n"+
+"     attribute \\src \"pas1.v:5.9-8.24\"\n"+
+"     switch \\a\n"+
+"     attribute \\src \"pas1.v:5.12-5.13\"\n"+
+"       case 1'1\n"+
+"         assign { } { }\n"+
+"         assign $1\\out[0:0] \\b\n"+
+"     attribute \\src \"pas1.v:7.9-7.13\"\n"+
+"       case \n"+
+"         assign { } { }\n"+
+"         assign $1\\out[0:0] 1'0\n"+
+"     end\n"+
+"     sync always\n"+
+"       update \\out $0\\out[0:0]\n"+
+"   end\n"+
+" end"
+      },
+      {
+        cmd:"hierarchy -check -top pas1",
+        name:"hierarchy",
+        counts:"5 wires · 0 cells · 1 processes",
+        notes:[
+          "Même effet que sur le chemin A : l'attribut <code>\\top</code> est posé et le design est marqué comme élaboré.",
+          "Le <code>process</code> est intact. <code>hierarchy</code> ne touche jamais au contenu comportemental : elle s'occupe uniquement de la structure des modules et de leurs instances."
+        ],
+        dump:
+" autoidx 2\n"+
+"\n"+
+" attribute \\src \"pas1.v:1.1-10.10\"\n"+
+"+attribute \\top 1\n"+
+" module \\pas1\n"+
+"\n"+
+"   attribute \\src \"pas1.v:2.16-2.17\"\n"+
+"   wire input 1 \\a\n"+
+"\n"+
+"   attribute \\src \"pas1.v:2.19-2.20\"\n"+
+"   wire input 2 \\b\n"+
+"\n"+
+"   attribute \\src \"pas1.v:3.17-3.20\"\n"+
+"   wire output 3 \\out\n"+
+"\n"+
+"   attribute \\src \"pas1.v:4.5-9.8\"\n"+
+"   wire $0\\out[0:0]\n"+
+"\n"+
+"   attribute \\src \"pas1.v:4.5-9.8\"\n"+
+"   wire $1\\out[0:0]\n"+
+"\n"+
+"   attribute \\src \"pas1.v:4.5-9.8\"\n"+
+"   process $proc$pas1.v:4$1\n"+
+"     assign { } { }\n"+
+"     assign $0\\out[0:0] $1\\out[0:0]\n"+
+"     attribute \\src \"pas1.v:5.9-8.24\"\n"+
+"     switch \\a\n"+
+"     attribute \\src \"pas1.v:5.12-5.13\"\n"+
+"       case 1'1\n"+
+"         assign { } { }\n"+
+"         assign $1\\out[0:0] \\b\n"+
+"     attribute \\src \"pas1.v:7.9-7.13\"\n"+
+"       case \n"+
+"         assign { } { }\n"+
+"         assign $1\\out[0:0] 1'0\n"+
+"     end\n"+
+"     sync always\n"+
+"       update \\out $0\\out[0:0]\n"+
+"   end\n"+
+" end"
+      },
+      {
+        cmd:"proc",
+        name:"proc",
+        counts:"7 wires · 1 cells · 0 processes",
+        notes:[
+          "Le <code>process</code> a disparu, remplacé par une cellule <code>$mux</code>. Sémantique : <code>Y = S ? B : A</code>, soit exactement <code>a ? b : 0</code>.",
+          "Le <code>case 1'1</code> est devenu l'entrée <code>B</code> et le <code>case</code> par défaut l'entrée <code>A</code>. L'ordre des <code>case</code> détermine la position dans le multiplexeur.",
+          "Le fil <code>$procmux$4_CMP</code> (comparator) devait porter le test <code>a == 1'1</code>. La condition se réduisant à <code>a</code>, il n'est qu'un alias. Sur un bus multi-bits, vous verriez ici une vraie cellule <code>$eq</code>.",
+          "Sept fils pour un circuit qui en demande trois : <code>$0\\out</code>, <code>$1\\out</code> et <code>$procmux$4_CMP</code> ne sont que des alias en cascade. C'est le déchet normal de la traduction, que <code>opt</code> va nettoyer."
+        ],
+        dump:
+" autoidx 5\n"+
+"\n"+
+" attribute \\src \"pas1.v:1.1-10.10\"\n"+
+" attribute \\top 1\n"+
+" module \\pas1\n"+
+"\n"+
+"   attribute \\src \"pas1.v:2.16-2.17\"\n"+
+"   wire input 1 \\a\n"+
+"\n"+
+"   attribute \\src \"pas1.v:2.19-2.20\"\n"+
+"   wire input 2 \\b\n"+
+"\n"+
+"   attribute \\src \"pas1.v:3.17-3.20\"\n"+
+"   wire output 3 \\out\n"+
+"\n"+
+"   attribute \\src \"pas1.v:4.5-9.8\"\n"+
+"   wire $0\\out[0:0]\n"+
+"\n"+
+"   attribute \\src \"pas1.v:4.5-9.8\"\n"+
+"   wire $1\\out[0:0]\n"+
+"\n"+
+"+  wire $procmux$4_CMP\n"+
+"+\n"+
+"+  wire $procmux$3_Y\n"+
+"+\n"+
+"+  attribute \\src \"pas1.v:5.12-5.13|pas1.v:5.9-8.24\"\n"+
+"+  attribute \\full_case 1\n"+
+"+  cell $mux $procmux$3\n"+
+"+    parameter \\WIDTH 1\n"+
+"+    connect \\A 1'0\n"+
+"+    connect \\B \\b\n"+
+"+    connect \\S $procmux$4_CMP\n"+
+"+    connect \\Y $procmux$3_Y\n"+
+"+  end\n"+
+"+\n"+
+"+  connect $0\\out[0:0] $1\\out[0:0]\n"+
+"+  connect $procmux$4_CMP \\a\n"+
+"+  connect $1\\out[0:0] $procmux$3_Y\n"+
+"+  connect \\out $procmux$3_Y\n"+
+" end"
+      }
+    ]
+  }
+};
+
+/* ---------- coloration RTLIL ---------- */
+var KW = /^(module|wire|cell|process|switch|case|sync|connect|assign|parameter|attribute|end|update|input|output|width|memory|always|posedge|negedge|init|autoidx|upto|signed)$/;
+
+function esc(s){
+  return s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+}
+
+function colorize(line){
+  var out = "";
+  // découpe en jetons en conservant les espaces
+  var re = /(\s+|"[^"]*"|[\\$][^\s]+|[0-9]+'[01xzm-]+|[A-Za-z_][A-Za-z0-9_]*|.)/g;
+  var m;
+  while((m = re.exec(line)) !== null){
+    var t = m[0];
+    if(/^\s+$/.test(t)){ out += t; }
+    else if(t.charAt(0) === '"'){ out += '<span class="tok-str">'+esc(t)+'</span>'; }
+    else if(t.charAt(0) === '\\'){ out += '<span class="tok-pub">'+esc(t)+'</span>'; }
+    else if(t.charAt(0) === '$'){ out += '<span class="tok-priv">'+esc(t)+'</span>'; }
+    else if(/^[0-9]+'/.test(t)){ out += '<span class="tok-const">'+esc(t)+'</span>'; }
+    else if(KW.test(t)){ out += '<span class="tok-kw">'+esc(t)+'</span>'; }
+    else { out += esc(t); }
+  }
+  return out;
+}
+
+function renderDump(raw){
+  var lines = raw.split("\n"), html = "";
+  for(var i=0;i<lines.length;i++){
+    var l = lines[i], flag = l.charAt(0), body = l.slice(1);
+    var cls = flag === "+" ? " add" : (flag === "-" ? " del" : "");
+    html += '<span class="ln'+cls+'">'+(colorize(body) || "&nbsp;")+"</span>";
+  }
+  return html;
+}
+
+/* ---------- état ---------- */
+var state = { path:"assign", step:0 };
+
+var elStepper = document.getElementById("stepper");
+var elDump    = document.getElementById("dump");
+var elNotes   = document.getElementById("notes");
+var elCounts  = document.getElementById("counts");
+
+function buildStepper(){
+  var steps = DATA[state.path].steps;
+  elStepper.innerHTML = "";
+  for(var i=0;i<steps.length;i++){
+    var b = document.createElement("button");
+    b.className = "step-btn";
+    b.type = "button";
+    b.setAttribute("aria-pressed", i === state.step ? "true" : "false");
+    b.setAttribute("data-step", String(i));
+    b.innerHTML = '<span class="n">Étape '+(i+1)+'</span>'+esc(steps[i].cmd);
+    elStepper.appendChild(b);
+  }
+}
+
+function render(){
+  var s = DATA[state.path].steps[state.step];
+  elDump.innerHTML = renderDump(s.dump);
+  elCounts.textContent = s.counts;
+  var html = '<span class="cmd">yosys&gt; '+esc(s.cmd)+'</span>';
+  for(var i=0;i<s.notes.length;i++){ html += "<p>"+s.notes[i]+"</p>"; }
+  elNotes.innerHTML = html;
+  var btns = elStepper.querySelectorAll(".step-btn");
+  for(var j=0;j<btns.length;j++){
+    btns[j].setAttribute("aria-pressed", Number(btns[j].getAttribute("data-step")) === state.step ? "true":"false");
+  }
+}
+
+elStepper.addEventListener("click", function(e){
+  var b = e.target.closest(".step-btn");
+  if(!b) return;
+  state.step = Number(b.getAttribute("data-step"));
+  render();
+});
+
+var pathBtns = document.querySelectorAll(".path-btn");
+for(var p=0;p<pathBtns.length;p++){
+  pathBtns[p].addEventListener("click", function(){
+    var chosen = this.getAttribute("data-path");
+    if(chosen === state.path) return;
+    state.path = chosen;
+    for(var q=0;q<pathBtns.length;q++){
+      pathBtns[q].setAttribute("aria-pressed", pathBtns[q].getAttribute("data-path") === chosen ? "true":"false");
+    }
+    buildStepper();
+    render();
+  });
+}
+
+buildStepper();
+render();
+
+
+/* ---------- flot GateMate : dépliage ---------- */
+(function(){
+  var f = document.getElementById("gmflow");
+  if(!f) return;
+  f.addEventListener("click", function(e){
+    var b = e.target.closest(".gmf-t");
+    if(!b) return;
+    var open = b.getAttribute("aria-expanded") === "true";
+    b.setAttribute("aria-expanded", open ? "false" : "true");
+    var panel = b.parentNode.querySelector(".gmf-p");
+    if(panel) panel.hidden = open;
+  });
+})();
+
+/* ---------- copie ---------- */
+document.addEventListener("click", function(e){
+  var btn = e.target.closest(".copy");
+  if(!btn) return;
+  var src = document.getElementById(btn.getAttribute("data-copy"));
+  if(!src) return;
+  var text = src.textContent;
+  var done = function(){
+    var old = btn.textContent;
+    btn.textContent = "Copié";
+    btn.classList.add("ok");
+    setTimeout(function(){ btn.textContent = old; btn.classList.remove("ok"); }, 1600);
+  };
+  if(navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(text).then(done, function(){});
+  } else {
+    var ta = document.createElement("textarea");
+    ta.value = text; ta.style.position="fixed"; ta.style.opacity="0";
+    document.body.appendChild(ta); ta.select();
+    try{ document.execCommand("copy"); done(); }catch(err){}
+    document.body.removeChild(ta);
+  }
+});
+
+/* ---------- progression persistée ---------- */
+var KEY = "rtlil-lab-progress";
+var boxes = document.querySelectorAll("#checklist input[type=checkbox]");
+
+function loadProgress(){
+  var saved = null;
+  try { saved = window.localStorage.getItem(KEY); } catch(e){ return; }
+  if(!saved) return;
+  var set;
+  try { set = JSON.parse(saved); } catch(e){ return; }
+  if(!set || typeof set !== "object") return;
+  for(var i=0;i<boxes.length;i++){
+    if(set[boxes[i].id]) boxes[i].checked = true;
+  }
+}
+
+function saveProgress(){
+  var set = {};
+  for(var i=0;i<boxes.length;i++){ if(boxes[i].checked) set[boxes[i].id] = 1; }
+  try { window.localStorage.setItem(KEY, JSON.stringify(set)); } catch(e){}
+}
+
+loadProgress();
+for(var b=0;b<boxes.length;b++){ boxes[b].addEventListener("change", saveProgress); }
+
+})();
+</script>
+</body>
+</html>
