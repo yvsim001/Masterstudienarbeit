@@ -1,0 +1,123 @@
+# =============================================================
+#  GateMate.ys  --  Step-by-step GateMate flow, on Full_adder_process_case.v
+#
+#  Each step produces three files:
+#     GateMate/NN_label.il     Complete RTLIL, the only lossless export
+#     GateMate/NN_label.stat   Cell count
+#     Bilder/NN_label.png      Diagram, via Graphviz
+#
+#  Prerequisites:  mkdir -p GateMate Bilder   (and Graphviz installed)
+#  Run:            yosys GateMate.ys
+#
+#  Note 1: 'show' writes a file instead of opening a window thanks to
+#  -format png -prefix. Do NOT add -viewer none: that combination
+#  triggers an assertion error.
+#
+#  Note 2: the final argument 'A:top' selects the module carrying the
+#  \top attribute, whatever its name. This keeps the diagram free of
+#  the library modules loaded by the 'begin' step, and makes the script
+#  immune to capitalisation mistakes. It requires 'hierarchy -top' to
+#  have run first, which is why the line below is explicit.
+#
+#  If 'hierarchy' fails, the module name is wrong. Module names are
+#  case sensitive. List the real ones with:  yosys -p "read_verilog Full_adder_process_case.v; ls"
+# =============================================================
+
+read_verilog full_adder_process_case.v
+hierarchy -check -top Full_adder_process_case
+write_rtlil  GateMate/00_read_verilog.il
+tee -o       GateMate/00_read_verilog.stat stat
+show -format png -prefix Bilder/00_read_verilog A:top
+
+# --- (read)       ---------------------------------------
+synth_gatemate -top Full_adder_process_case -luttree -nomx8 -run :begin
+write_rtlil  GateMate/01_hierarchy.il
+tee -o       GateMate/01_hierarchy.stat stat
+show -format png -prefix Bilder/01_hierarchy A:top
+
+# --- begin        ---------------------------------------
+synth_gatemate -top Full_adder_process_case -luttree -nomx8 -run begin:prepare
+write_rtlil  GateMate/02_begin.il
+tee -o       GateMate/02_begin.stat stat
+show -format png -prefix Bilder/02_begin A:top
+
+# --- prepare      ---------------------------------------
+synth_gatemate -top Full_adder_process_case -luttree -nomx8 -run prepare:map_mult
+write_rtlil  GateMate/03_prepare.il
+tee -o       GateMate/03_prepare.stat stat
+show -format png -prefix Bilder/03_prepare A:top
+
+# --- map_mult     ---------------------------------------
+synth_gatemate -top Full_adder_process_case -luttree -nomx8 -run map_mult:coarse
+write_rtlil  GateMate/04_map_mult.il
+tee -o       GateMate/04_map_mult.stat stat
+show -format png -prefix Bilder/04_map_mult A:top
+
+# --- coarse       ---------------------------------------
+synth_gatemate -top Full_adder_process_case -luttree -nomx8 -run coarse:map_bram
+write_rtlil  GateMate/05_coarse.il
+tee -o       GateMate/05_coarse.stat stat
+show -format png -prefix Bilder/05_coarse A:top
+
+# --- map_bram     ---------------------------------------
+synth_gatemate -top Full_adder_process_case -luttree -nomx8 -run map_bram:map_ffram
+write_rtlil  GateMate/06_map_bram.il
+tee -o       GateMate/06_map_bram.stat stat
+show -format png -prefix Bilder/06_map_bram A:top
+
+# --- map_ffram    ---------------------------------------
+synth_gatemate -top Full_adder_process_case -luttree -nomx8 -run map_ffram:map_gates
+write_rtlil  GateMate/07_map_ffram.il
+tee -o       GateMate/07_map_ffram.stat stat
+show -format png -prefix Bilder/07_map_ffram A:top
+
+# --- map_gates    ---------------------------------------
+synth_gatemate -top Full_adder_process_case -luttree -nomx8 -run map_gates:map_io
+write_rtlil  GateMate/08_map_gates.il
+tee -o       GateMate/08_map_gates.stat stat
+show -format png -prefix Bilder/08_map_gates A:top
+
+# --- map_io       ---------------------------------------
+synth_gatemate -top Full_adder_process_case -luttree -nomx8 -run map_io:map_regs
+write_rtlil  GateMate/09_map_io.il
+tee -o       GateMate/09_map_io.stat stat
+show -format png -prefix Bilder/09_map_io A:top
+
+# --- map_regs     ---------------------------------------
+synth_gatemate -top Full_adder_process_case -luttree -nomx8 -run map_regs:map_muxs
+write_rtlil  GateMate/10_map_regs.il
+tee -o       GateMate/10_map_regs.stat stat
+show -format png -prefix Bilder/10_map_regs A:top
+
+# --- map_muxs     ---------------------------------------
+synth_gatemate -top Full_adder_process_case -luttree -nomx8 -run map_muxs:map_luts
+write_rtlil  GateMate/11_map_muxs.il
+tee -o       GateMate/11_map_muxs.stat stat
+show -format png -prefix Bilder/11_map_muxs A:top
+
+# --- map_luts     ---------------------------------------
+synth_gatemate -top Full_adder_process_case -luttree -nomx8 -run map_luts:map_cells
+write_rtlil  GateMate/12_map_luts.il
+tee -o       GateMate/12_map_luts.stat stat
+show -format png -prefix Bilder/12_map_luts A:top
+
+# --- map_cells    ---------------------------------------
+synth_gatemate -top Full_adder_process_case -luttree -nomx8 -run map_cells:map_bufg
+write_rtlil  GateMate/13_map_cells.il
+tee -o       GateMate/13_map_cells.stat stat
+show -format png -prefix Bilder/13_map_cells A:top
+
+# --- map_bufg     ---------------------------------------
+synth_gatemate -top Full_adder_process_case -luttree -nomx8 -run map_bufg:check
+write_rtlil  GateMate/14_map_bufg.il
+tee -o       GateMate/14_map_bufg.stat stat
+show -format png -prefix Bilder/14_map_bufg A:top
+
+# --- check ------------------------------------------------
+synth_gatemate -top Full_adder_process_case -luttree -nomx8 -run check:
+write_rtlil  GateMate/15_check.il
+tee -o       GateMate/15_check.stat stat
+show -format png -prefix Bilder/15_check A:top
+
+# --- final netlist for nextpnr -----------------------------
+write_json Full_adder_process_case.json
