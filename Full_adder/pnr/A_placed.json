@@ -1,0 +1,856 @@
+{
+  "creator": "Next Generation Place and Route (Version nextpnr-0.11.1-26-ga601751d)",
+  "modules": {
+    "top": {
+      "settings": {
+        "route": "00000000000000000000000000000001",
+        "router2/perfProfile": "0 ",
+        "router2/estimateWeight": "1.250000",
+        "router2/currCongWeightMult": "2.000000",
+        "router2/histCongWeight": "1.000000",
+        "router2/initCurrCongWeight": "0.500000",
+        "router2/biasCostFactor": "0.250000",
+        "router2/ipinCostAdder": "0.000000",
+        "router2/bbMargin/y": "3",
+        "router2/bbMargin/x": "3",
+        "router2/glbBwdMaxIter": "200",
+        "router2/bwdMaxIter": "20",
+        "place": "00000000000000000000000000000001",
+        "placer1/startTemp": "1.000000",
+        "placer1/minBelsForGridPick": "64",
+        "placer1/netShareWeight": "0.000000",
+        "placer1/constraintWeight": "10.000000",
+        "placerHeap/cellPlacementTimeout": "8",
+        "placerHeap/noCtrlSet": "0 ",
+        "placerHeap/netShareWeight": "0.000000",
+        "placerHeap/parallelRefine": "0 ",
+        "pack": "00000000000000000000000000000001",
+        "synth": "00000000000000000000000000000001",
+        "placerHeap/timingWeight": "10 ",
+        "placerHeap/criticalityExponent": "2",
+        "placerHeap/beta": "0.900000",
+        "placerHeap/alpha": "0.100000",
+        "seed": "0011000101000001010110010010011001010011010110001001011110010011",
+        "arch.type": " ",
+        "arch.name": "himbaechel",
+        "placer": "heap",
+        "auto_freq": "00000000000000000000000000000000",
+        "timing_driven": "00000000000000000000000000000001",
+        "target_freq": "12000000.000000",
+        "router": "router2"
+      },
+      "attributes": {
+        "top": "00000000000000000000000000000001",
+        "src": "Full_adder.v:1.1-7.10"
+      },
+      "ports": {
+        "sum": {
+          "direction": "output",
+          "bits": [ 28944 ]
+        },
+        "co": {
+          "direction": "output",
+          "bits": [ 28943 ]
+        },
+        "cin": {
+          "direction": "input",
+          "bits": [ 28942 ]
+        },
+        "b": {
+          "direction": "input",
+          "bits": [ 28941 ]
+        },
+        "a": {
+          "direction": "input",
+          "bits": [ 28940 ]
+        }
+      },
+      "cells": {
+        "cplines$X3Y29": {
+          "hide_name": 0,
+          "type": "CPE_CPLINES",
+          "parameters": {
+            "C_PY1_I": "1",
+            "C_SEL_P": "0",
+            "C_SELY1": "1"
+          },
+          "attributes": {
+            "BEL_STRENGTH": "00000000000000000000000000000100",
+            "NEXTPNR_BEL": "X3Y29/CPE_CPLINES"
+          },
+          "port_directions": {
+            "POUTY2": "output",
+            "COUTY2": "output",
+            "POUTY1": "output",
+            "COUTY1": "output",
+            "POUTX": "output",
+            "COUTX": "output",
+            "PINY2": "input",
+            "CINY2": "input",
+            "PINY1": "input",
+            "CINY1": "input",
+            "PINX": "input",
+            "CINX": "input",
+            "COMPOUT": "input",
+            "OUT2": "input",
+            "OUT1": "input"
+          },
+          "connections": {
+            "POUTY2": [  ],
+            "COUTY2": [  ],
+            "POUTY1": [ 29030 ],
+            "COUTY1": [  ],
+            "POUTX": [  ],
+            "COUTX": [  ],
+            "PINY2": [  ],
+            "CINY2": [  ],
+            "PINY1": [  ],
+            "CINY1": [  ],
+            "PINX": [  ],
+            "CINX": [  ],
+            "COMPOUT": [  ],
+            "OUT2": [ 29024 ],
+            "OUT1": [  ]
+          }
+        },
+        "cplines$X3Y26": {
+          "hide_name": 0,
+          "type": "CPE_CPLINES",
+          "parameters": {
+            "C_PY1_I": "1",
+            "C_SEL_P": "1",
+            "C_SELY1": "1"
+          },
+          "attributes": {
+            "BEL_STRENGTH": "00000000000000000000000000000100",
+            "NEXTPNR_BEL": "X3Y26/CPE_CPLINES"
+          },
+          "port_directions": {
+            "POUTY2": "output",
+            "COUTY2": "output",
+            "POUTY1": "output",
+            "COUTY1": "output",
+            "POUTX": "output",
+            "COUTX": "output",
+            "PINY2": "input",
+            "CINY2": "input",
+            "PINY1": "input",
+            "CINY1": "input",
+            "PINX": "input",
+            "CINX": "input",
+            "COMPOUT": "input",
+            "OUT2": "input",
+            "OUT1": "input"
+          },
+          "connections": {
+            "POUTY2": [  ],
+            "COUTY2": [  ],
+            "POUTY1": [ 29028 ],
+            "COUTY1": [  ],
+            "POUTX": [  ],
+            "COUTX": [  ],
+            "PINY2": [  ],
+            "CINY2": [  ],
+            "PINY1": [  ],
+            "CINY1": [  ],
+            "PINX": [ 28950 ],
+            "CINX": [  ],
+            "COMPOUT": [  ],
+            "OUT2": [  ],
+            "OUT1": [  ]
+          }
+        },
+        "cplines$X3Y28": {
+          "hide_name": 0,
+          "type": "CPE_CPLINES",
+          "parameters": {
+            "C_PY1_I": "1",
+            "C_SEL_P": "1",
+            "C_SELY1": "1"
+          },
+          "attributes": {
+            "BEL_STRENGTH": "00000000000000000000000000000100",
+            "NEXTPNR_BEL": "X3Y28/CPE_CPLINES"
+          },
+          "port_directions": {
+            "POUTY2": "output",
+            "COUTY2": "output",
+            "POUTY1": "output",
+            "COUTY1": "output",
+            "POUTX": "output",
+            "COUTX": "output",
+            "PINY2": "input",
+            "CINY2": "input",
+            "PINY1": "input",
+            "CINY1": "input",
+            "PINX": "input",
+            "CINX": "input",
+            "COMPOUT": "input",
+            "OUT2": "input",
+            "OUT1": "input"
+          },
+          "connections": {
+            "POUTY2": [  ],
+            "COUTY2": [  ],
+            "POUTY1": [ 29026 ],
+            "COUTY1": [  ],
+            "POUTX": [  ],
+            "COUTX": [  ],
+            "PINY2": [  ],
+            "CINY2": [  ],
+            "PINY1": [  ],
+            "CINY1": [  ],
+            "PINX": [ 28949 ],
+            "CINX": [  ],
+            "COMPOUT": [  ],
+            "OUT2": [  ],
+            "OUT1": [  ]
+          }
+        },
+        "$abc$103$iopadmap$cin$bridge0": {
+          "hide_name": 1,
+          "type": "CPE_BRIDGE",
+          "parameters": {
+            "C_SN": "100",
+            "C_BR": "1"
+          },
+          "attributes": {
+            "BEL_STRENGTH": "00000000000000000000000000000100",
+            "NEXTPNR_BEL": "X3Y29/CPE_BRIDGE"
+          },
+          "port_directions": {
+            "MUXOUT": "output",
+            "IN5": "input"
+          },
+          "connections": {
+            "MUXOUT": [ 29024 ],
+            "IN5": [ 28948 ]
+          }
+        },
+        "$iopadmap$Full_adder.a$iosel": {
+          "hide_name": 1,
+          "type": "IOSEL",
+          "parameters": {
+            "INPUT_ENABLE": "1",
+            "DELAY_IBF": "0000000000000001"
+          },
+          "attributes": {
+            "BEL_STRENGTH": "00000000000000000000000000000100",
+            "NEXTPNR_BEL": "X0Y35/IOSEL"
+          },
+          "port_directions": {
+            "CLOCK4": "input",
+            "CLOCK3": "input",
+            "CLOCK2": "input",
+            "CLOCK1": "input",
+            "DDR": "input",
+            "OUT4": "input",
+            "OUT3": "input",
+            "OUT2": "input",
+            "OUT1": "input",
+            "IN2": "output",
+            "IN1": "output",
+            "GPIO_IN": "input",
+            "GPIO_EN": "output",
+            "GPIO_OUT": "output"
+          },
+          "connections": {
+            "CLOCK4": [  ],
+            "CLOCK3": [  ],
+            "CLOCK2": [  ],
+            "CLOCK1": [  ],
+            "DDR": [  ],
+            "OUT4": [  ],
+            "OUT3": [  ],
+            "OUT2": [  ],
+            "OUT1": [  ],
+            "IN2": [  ],
+            "IN1": [ 28949 ],
+            "GPIO_IN": [ 28987 ],
+            "GPIO_EN": [  ],
+            "GPIO_OUT": [  ]
+          }
+        },
+        "$iopadmap$Full_adder.b$iosel": {
+          "hide_name": 1,
+          "type": "IOSEL",
+          "parameters": {
+            "INPUT_ENABLE": "1",
+            "DELAY_IBF": "0000000000000001"
+          },
+          "attributes": {
+            "BEL_STRENGTH": "00000000000000000000000000000100",
+            "NEXTPNR_BEL": "X0Y33/IOSEL"
+          },
+          "port_directions": {
+            "CLOCK4": "input",
+            "CLOCK3": "input",
+            "CLOCK2": "input",
+            "CLOCK1": "input",
+            "DDR": "input",
+            "OUT4": "input",
+            "OUT3": "input",
+            "OUT2": "input",
+            "OUT1": "input",
+            "IN2": "output",
+            "IN1": "output",
+            "GPIO_IN": "input",
+            "GPIO_EN": "output",
+            "GPIO_OUT": "output"
+          },
+          "connections": {
+            "CLOCK4": [  ],
+            "CLOCK3": [  ],
+            "CLOCK2": [  ],
+            "CLOCK1": [  ],
+            "DDR": [  ],
+            "OUT4": [  ],
+            "OUT3": [  ],
+            "OUT2": [  ],
+            "OUT1": [  ],
+            "IN2": [  ],
+            "IN1": [ 28950 ],
+            "GPIO_IN": [ 28985 ],
+            "GPIO_EN": [  ],
+            "GPIO_OUT": [  ]
+          }
+        },
+        "$iopadmap$Full_adder.cin$iosel": {
+          "hide_name": 1,
+          "type": "IOSEL",
+          "parameters": {
+            "INPUT_ENABLE": "1",
+            "DELAY_IBF": "0000000000000001"
+          },
+          "attributes": {
+            "BEL_STRENGTH": "00000000000000000000000000000100",
+            "NEXTPNR_BEL": "X0Y31/IOSEL"
+          },
+          "port_directions": {
+            "CLOCK4": "input",
+            "CLOCK3": "input",
+            "CLOCK2": "input",
+            "CLOCK1": "input",
+            "DDR": "input",
+            "OUT4": "input",
+            "OUT3": "input",
+            "OUT2": "input",
+            "OUT1": "input",
+            "IN2": "output",
+            "IN1": "output",
+            "GPIO_IN": "input",
+            "GPIO_EN": "output",
+            "GPIO_OUT": "output"
+          },
+          "connections": {
+            "CLOCK4": [  ],
+            "CLOCK3": [  ],
+            "CLOCK2": [  ],
+            "CLOCK1": [  ],
+            "DDR": [  ],
+            "OUT4": [  ],
+            "OUT3": [  ],
+            "OUT2": [  ],
+            "OUT1": [  ],
+            "IN2": [  ],
+            "IN1": [ 28948 ],
+            "GPIO_IN": [ 28983 ],
+            "GPIO_EN": [  ],
+            "GPIO_OUT": [  ]
+          }
+        },
+        "$iopadmap$Full_adder.co$iosel": {
+          "hide_name": 1,
+          "type": "IOSEL",
+          "parameters": {
+            "OUT_SIGNAL": "1",
+            "OE_ENABLE": "1",
+            "DELAY_OBF": "0000000000000001",
+            "SLEW": "1"
+          },
+          "attributes": {
+            "BEL_STRENGTH": "00000000000000000000000000000100",
+            "NEXTPNR_BEL": "X0Y29/IOSEL"
+          },
+          "port_directions": {
+            "CLOCK4": "input",
+            "CLOCK3": "input",
+            "CLOCK2": "input",
+            "CLOCK1": "input",
+            "DDR": "input",
+            "OUT4": "input",
+            "OUT3": "input",
+            "OUT2": "input",
+            "OUT1": "input",
+            "IN2": "output",
+            "IN1": "output",
+            "GPIO_IN": "input",
+            "GPIO_EN": "output",
+            "GPIO_OUT": "output"
+          },
+          "connections": {
+            "CLOCK4": [  ],
+            "CLOCK3": [  ],
+            "CLOCK2": [  ],
+            "CLOCK1": [  ],
+            "DDR": [  ],
+            "OUT4": [  ],
+            "OUT3": [  ],
+            "OUT2": [  ],
+            "OUT1": [ 28991 ],
+            "IN2": [  ],
+            "IN1": [  ],
+            "GPIO_IN": [  ],
+            "GPIO_EN": [  ],
+            "GPIO_OUT": [ 28981 ]
+          }
+        },
+        "$iopadmap$Full_adder.sum$iosel": {
+          "hide_name": 1,
+          "type": "IOSEL",
+          "parameters": {
+            "OUT_SIGNAL": "1",
+            "OE_ENABLE": "1",
+            "DELAY_OBF": "0000000000000001",
+            "SLEW": "1"
+          },
+          "attributes": {
+            "BEL_STRENGTH": "00000000000000000000000000000100",
+            "NEXTPNR_BEL": "X0Y27/IOSEL"
+          },
+          "port_directions": {
+            "CLOCK4": "input",
+            "CLOCK3": "input",
+            "CLOCK2": "input",
+            "CLOCK1": "input",
+            "DDR": "input",
+            "OUT4": "input",
+            "OUT3": "input",
+            "OUT2": "input",
+            "OUT1": "input",
+            "IN2": "output",
+            "IN1": "output",
+            "GPIO_IN": "input",
+            "GPIO_EN": "output",
+            "GPIO_OUT": "output"
+          },
+          "connections": {
+            "CLOCK4": [  ],
+            "CLOCK3": [  ],
+            "CLOCK2": [  ],
+            "CLOCK1": [  ],
+            "DDR": [  ],
+            "OUT4": [  ],
+            "OUT3": [  ],
+            "OUT2": [  ],
+            "OUT1": [ 28993 ],
+            "IN2": [  ],
+            "IN1": [  ],
+            "GPIO_IN": [  ],
+            "GPIO_EN": [  ],
+            "GPIO_OUT": [ 28979 ]
+          }
+        },
+        "$abc$103$auto$blifparse.cc:397:parse_blif$106_ramo": {
+          "hide_name": 1,
+          "type": "CPE_RAMO",
+          "parameters": {
+            "C_RAM_O": "1"
+          },
+          "attributes": {
+            "BEL_STRENGTH": "00000000000000000000000000000100",
+            "NEXTPNR_BEL": "X3Y27/CPE_RAMIO_L"
+          },
+          "port_directions": {
+            "OUT": "output",
+            "RAM_O": "output",
+            "RAM_I": "input",
+            "I": "input"
+          },
+          "connections": {
+            "OUT": [  ],
+            "RAM_O": [ 28993 ],
+            "RAM_I": [  ],
+            "I": [ 28956 ]
+          }
+        },
+        "$abc$103$auto$blifparse.cc:397:parse_blif$105_ramo": {
+          "hide_name": 1,
+          "type": "CPE_RAMO",
+          "parameters": {
+            "C_RAM_O": "1"
+          },
+          "attributes": {
+            "BEL_STRENGTH": "00000000000000000000000000000100",
+            "NEXTPNR_BEL": "X3Y29/CPE_RAMIO_L"
+          },
+          "port_directions": {
+            "OUT": "output",
+            "RAM_O": "output",
+            "RAM_I": "input",
+            "I": "input"
+          },
+          "connections": {
+            "OUT": [  ],
+            "RAM_O": [ 28991 ],
+            "RAM_I": [  ],
+            "I": [ 28954 ]
+          }
+        },
+        "$iopadmap$Full_adder.sum": {
+          "hide_name": 1,
+          "type": "CPE_OBUF",
+          "parameters": {
+          },
+          "attributes": {
+            "BEL_STRENGTH": "00000000000000000000000000000100",
+            "NEXTPNR_BEL": "X0Y27/GPIO",
+            "src": "Full_adder.v:3.12-3.15",
+            "keep": "00000000000000000000000000000001"
+          },
+          "port_directions": {
+            "O": "output",
+            "A": "input"
+          },
+          "connections": {
+            "O": [ 28944 ],
+            "A": [ 28979 ]
+          }
+        },
+        "$iopadmap$Full_adder.co": {
+          "hide_name": 1,
+          "type": "CPE_OBUF",
+          "parameters": {
+          },
+          "attributes": {
+            "BEL_STRENGTH": "00000000000000000000000000000100",
+            "NEXTPNR_BEL": "X0Y29/GPIO",
+            "src": "Full_adder.v:3.17-3.19",
+            "keep": "00000000000000000000000000000001"
+          },
+          "port_directions": {
+            "O": "output",
+            "A": "input"
+          },
+          "connections": {
+            "O": [ 28943 ],
+            "A": [ 28981 ]
+          }
+        },
+        "$iopadmap$Full_adder.cin": {
+          "hide_name": 1,
+          "type": "CPE_IBUF",
+          "parameters": {
+          },
+          "attributes": {
+            "BEL_STRENGTH": "00000000000000000000000000000100",
+            "NEXTPNR_BEL": "X0Y31/GPIO",
+            "src": "Full_adder.v:2.17-2.20",
+            "keep": "00000000000000000000000000000001"
+          },
+          "port_directions": {
+            "Y": "output",
+            "I": "input"
+          },
+          "connections": {
+            "Y": [ 28983 ],
+            "I": [ 28942 ]
+          }
+        },
+        "$iopadmap$Full_adder.b": {
+          "hide_name": 1,
+          "type": "CPE_IBUF",
+          "parameters": {
+          },
+          "attributes": {
+            "BEL_STRENGTH": "00000000000000000000000000000100",
+            "NEXTPNR_BEL": "X0Y33/GPIO",
+            "src": "Full_adder.v:2.14-2.15",
+            "keep": "00000000000000000000000000000001"
+          },
+          "port_directions": {
+            "Y": "output",
+            "I": "input"
+          },
+          "connections": {
+            "Y": [ 28985 ],
+            "I": [ 28941 ]
+          }
+        },
+        "$iopadmap$Full_adder.a": {
+          "hide_name": 1,
+          "type": "CPE_IBUF",
+          "parameters": {
+          },
+          "attributes": {
+            "BEL_STRENGTH": "00000000000000000000000000000100",
+            "NEXTPNR_BEL": "X0Y35/GPIO",
+            "src": "Full_adder.v:2.11-2.12",
+            "keep": "00000000000000000000000000000001"
+          },
+          "port_directions": {
+            "Y": "output",
+            "I": "input"
+          },
+          "connections": {
+            "Y": [ 28987 ],
+            "I": [ 28940 ]
+          }
+        },
+        "$abc$103$auto$blifparse.cc:397:parse_blif$106": {
+          "hide_name": 1,
+          "type": "CPE_L2T4",
+          "parameters": {
+            "C_I4": "1",
+            "C_I3": "1",
+            "L2T4_UPPER": "0",
+            "INIT_L20": "1100",
+            "INIT_L10": "0110",
+            "INIT_L01": "1100",
+            "INIT_L00": "0110"
+          },
+          "attributes": {
+            "BEL_STRENGTH": "00000000000000000000000000000100",
+            "NEXTPNR_BEL": "X3Y27/CPE_LT_L",
+            "src": "/usr/local/bin/../share/yosys/gatemate/lut_tree_map.v:183.7-186.6",
+            "module_not_derived": "00000000000000000000000000000001"
+          },
+          "port_directions": {
+            "PINX": "input",
+            "PINY1": "input",
+            "IN1": "input",
+            "OUT": "output"
+          },
+          "connections": {
+            "PINX": [ 28949 ],
+            "PINY1": [ 29028 ],
+            "IN1": [ 28948 ],
+            "OUT": [ 28956 ]
+          }
+        },
+        "$abc$103$auto$blifparse.cc:397:parse_blif$105": {
+          "hide_name": 1,
+          "type": "CPE_L2T4",
+          "parameters": {
+            "C_I4": "1",
+            "C_I3": "1",
+            "L2T4_UPPER": "0",
+            "INIT_L20": "1100",
+            "INIT_L10": "1000",
+            "INIT_L01": "1100",
+            "INIT_L00": "1110"
+          },
+          "attributes": {
+            "BEL_STRENGTH": "00000000000000000000000000000100",
+            "NEXTPNR_BEL": "X3Y29/CPE_LT_L",
+            "src": "/usr/local/bin/../share/yosys/gatemate/lut_tree_map.v:265.7-268.6",
+            "module_not_derived": "00000000000000000000000000000001"
+          },
+          "port_directions": {
+            "PINX": "input",
+            "IN1": "input",
+            "PINY1": "input",
+            "OUT": "output"
+          },
+          "connections": {
+            "PINX": [ 28951 ],
+            "IN1": [ 28948 ],
+            "PINY1": [ 29026 ],
+            "OUT": [ 28954 ]
+          }
+        },
+        "$abc$103$auto$blifparse.cc:397:parse_blif$104": {
+          "hide_name": 1,
+          "type": "CPE_L2T4",
+          "parameters": {
+            "C_I2": "1",
+            "C_I1": "1",
+            "L2T4_UPPER": "1",
+            "INIT_L10": "1110",
+            "INIT_L01": "1100",
+            "INIT_L00": "1000"
+          },
+          "attributes": {
+            "BEL_STRENGTH": "00000000000000000000000000000001",
+            "NEXTPNR_BEL": "X3Y30/CPE_LT_U",
+            "src": "/usr/local/bin/../share/yosys/gatemate/lut_tree_map.v:218.7-221.6",
+            "module_not_derived": "00000000000000000000000000000001"
+          },
+          "port_directions": {
+            "CINX": "input",
+            "PINY1": "input",
+            "IN1": "input",
+            "OUT": "output"
+          },
+          "connections": {
+            "CINX": [ 28950 ],
+            "PINY1": [ 29030 ],
+            "IN1": [ 28949 ],
+            "OUT": [ 28951 ]
+          }
+        }
+      },
+      "netnames": {
+        "cplines$X3Y29$POUTY1": {
+          "hide_name": 0,
+          "bits": [ 29030 ] ,
+          "attributes": {
+            "ROUTING": "X3Y29/CPE.POUTY1;X3Y29/CPE.POUTY1/CPE.PY1_VAL;1;X3Y30/CPE.PINY1;X3Y30/CPE.PINY1/CPE.PINY1_n;1;X3Y30/CPE.TI2_int;X3Y30/CPE.TI2_int/CPE.PINY1;1;X3Y30/CPE.D0_00_int;X3Y30/CPE.D0_00_int/CPE.TI2_int;1"
+          }
+        },
+        "cplines$X3Y26$POUTY1": {
+          "hide_name": 0,
+          "bits": [ 29028 ] ,
+          "attributes": {
+            "ROUTING": "X3Y27/CPE.D0_02_int;X3Y27/CPE.D0_02_int/CPE.TI6_int;1;X3Y27/CPE.TI6_int;X3Y27/CPE.TI6_int/CPE.PINY1;1;X3Y27/CPE.PINY1;X3Y27/CPE.PINY1/CPE.PINY1_n;1;X3Y26/CPE.POUTY1;X3Y26/CPE.POUTY1/CPE.PY1_VAL;1"
+          }
+        },
+        "cplines$X3Y28$POUTY1": {
+          "hide_name": 0,
+          "bits": [ 29026 ] ,
+          "attributes": {
+            "ROUTING": "X3Y29/CPE.D1_02_int;X3Y29/CPE.D1_02_int/CPE.TI6_int;1;X3Y29/CPE.TI6_int;X3Y29/CPE.TI6_int/CPE.PINY1;1;X3Y29/CPE.PINY1;X3Y29/CPE.PINY1/CPE.PINY1_n;1;X3Y28/CPE.POUTY1;X3Y28/CPE.POUTY1/CPE.PY1_VAL;1"
+          }
+        },
+        "$abc$103$iopadmap$cin$bridge0$muxout": {
+          "hide_name": 1,
+          "bits": [ 29024 ] ,
+          "attributes": {
+            "ROUTING": "X3Y29/CPE.MUXOUT_int;X3Y29/CPE.MUXOUT_int/CPE.IN5_int;1;X3Y29/CPE.OUT2_int;X3Y29/CPE.OUT2_int/CPE.MUXOUT_int;1;X3Y29/CPE.OUT2;X3Y29/CPE.OUT2/CPE.OUT2_int;1;X3Y29/CPE.OUT2_IN_int;X3Y29/CPE.OUT2_IN_int/CPE.OUT2;1;X3Y29/CPE.PY1_OUT;X3Y29/CPE.PY1_OUT/CPE.OUT2_IN_int;1;X3Y29/CPE.PY1_VAL;X3Y29/CPE.PY1_VAL/CPE.PY1_OUT;1"
+          }
+        },
+        "$iopadmap$Full_adder.a$conn$Y": {
+          "hide_name": 1,
+          "bits": [ 28987 ] ,
+          "attributes": {
+            "ROUTING": "X0Y35/IOSEL.GPIO_IN;X0Y35/IOSEL.GPIO_IN/GPIO.Y;1;X0Y35/GPIO.Y;;1"
+          }
+        },
+        "$iopadmap$Full_adder.b$conn$Y": {
+          "hide_name": 1,
+          "bits": [ 28985 ] ,
+          "attributes": {
+            "ROUTING": "X0Y33/IOSEL.GPIO_IN;X0Y33/IOSEL.GPIO_IN/GPIO.Y;1;X0Y33/GPIO.Y;;1"
+          }
+        },
+        "$iopadmap$Full_adder.cin$conn$Y": {
+          "hide_name": 1,
+          "bits": [ 28983 ] ,
+          "attributes": {
+            "ROUTING": "X0Y31/IOSEL.GPIO_IN;X0Y31/IOSEL.GPIO_IN/GPIO.Y;1;X0Y31/GPIO.Y;;1"
+          }
+        },
+        "$iopadmap$Full_adder.co$conn$A": {
+          "hide_name": 1,
+          "bits": [ 28981 ] ,
+          "attributes": {
+            "ROUTING": "X0Y29/GPIO.A;X0Y29/GPIO.A/IOSEL.GPIO_OUT;1;X0Y29/IOSEL.GPIO_OUT;;1"
+          }
+        },
+        "$iopadmap$Full_adder.sum$conn$A": {
+          "hide_name": 1,
+          "bits": [ 28979 ] ,
+          "attributes": {
+            "ROUTING": "X0Y27/GPIO.A;X0Y27/GPIO.A/IOSEL.GPIO_OUT;1;X0Y27/IOSEL.GPIO_OUT;;1"
+          }
+        },
+        "$abc$103$auto$blifparse.cc:397:parse_blif$105$ram_o": {
+          "hide_name": 1,
+          "bits": [ 28991 ] ,
+          "attributes": {
+            "ROUTING": "X0Y29/IOSEL.OUT1;X0Y29/IOSEL.OUT1/IOSEL.OUT1_n;1;X0Y29/IOSEL.OUT1_n;;1"
+          }
+        },
+        "$abc$103$auto$blifparse.cc:397:parse_blif$106$ram_o": {
+          "hide_name": 1,
+          "bits": [ 28993 ] ,
+          "attributes": {
+            "ROUTING": "X0Y27/IOSEL.OUT1;X0Y27/IOSEL.OUT1/IOSEL.OUT1_n;1;X0Y27/IOSEL.OUT1_n;;1"
+          }
+        },
+        "sum": {
+          "hide_name": 0,
+          "bits": [ 28944 ] ,
+          "attributes": {
+            "ROUTING": " ",
+            "src": "Full_adder.v:3.12-3.15"
+          }
+        },
+        "co": {
+          "hide_name": 0,
+          "bits": [ 28943 ] ,
+          "attributes": {
+            "ROUTING": " ",
+            "src": "Full_adder.v:3.17-3.19"
+          }
+        },
+        "cin": {
+          "hide_name": 0,
+          "bits": [ 28942 ] ,
+          "attributes": {
+            "ROUTING": " ",
+            "src": "Full_adder.v:2.17-2.20"
+          }
+        },
+        "b": {
+          "hide_name": 0,
+          "bits": [ 28941 ] ,
+          "attributes": {
+            "ROUTING": " ",
+            "src": "Full_adder.v:2.14-2.15"
+          }
+        },
+        "a": {
+          "hide_name": 0,
+          "bits": [ 28940 ] ,
+          "attributes": {
+            "ROUTING": " ",
+            "src": "Full_adder.v:2.11-2.12"
+          }
+        },
+        "$abc$103$iopadmap$sum": {
+          "hide_name": 1,
+          "bits": [ 28956 ] ,
+          "attributes": {
+            "ROUTING": "X3Y27/CPE.OUT1_int;X3Y27/CPE.OUT1_int/CPE.COMBOUT1_int;1;X3Y27/CPE.COMBOUT1_int;;1"
+          }
+        },
+        "$abc$103$iopadmap$co": {
+          "hide_name": 1,
+          "bits": [ 28954 ] ,
+          "attributes": {
+            "ROUTING": "X3Y29/CPE.OUT1_int;X3Y29/CPE.OUT1_int/CPE.COMBOUT1_int;1;X3Y29/CPE.COMBOUT1_int;;1"
+          }
+        },
+        "$abc$103$new_n6": {
+          "hide_name": 1,
+          "bits": [ 28951 ] ,
+          "attributes": {
+            "ROUTING": "X3Y30/CPE.OUT2_int;X3Y30/CPE.OUT2_int/CPE.COMBOUT2_int;1;X3Y29/OM.P09.D1_n;X3Y30/CPE.OUT2/CPE.OUT2_int;1;X3Y29/SB_SML.P06.D0;X3Y29/SB_SML.P06.D0/SB_SML.P06.D0_n;1;X3Y29/SB_SML.P06.Y3_int;X3Y29/SB_SML.P06.Y3_int/SB_SML.P06.D0;1;X1Y29/SB_BIG.P06.D2_3_n;X3Y29/SB_SML.P06.Y3/SB_SML.P06.Y3_int/INV;1;X1Y29/SB_BIG.P06.D2_3;X1Y29/SB_BIG.P06.D2_3/SB_BIG.P06.D2_3_n;1;X0Y29/IOES.ALTIN_06_n;X1Y29/SB_BIG.P06.Y3/SB_BIG.P06.D2_3/INV;1;X0Y29/LES.SB_Y3.P6;X0Y29/LES.SB_Y3.P6/LES.SB_Y3.P6_n;1;X0Y29/LES.SB_Y3_SEL2_int;X0Y29/LES.SB_Y3_SEL2_int/LES.SB_Y3.P6;1;X0Y29/LES.CPE_PINX;X0Y29/LES.CPE_PINX/LES.SB_Y3_SEL2_int;1;X3Y29/CPE.PINX;X3Y29/CPE.PINX/CPE.PINX_n;1;X3Y29/CPE.TI8_int;X3Y29/CPE.TI8_int/CPE.PINX;1;X3Y29/CPE.D0_03_int;X3Y29/CPE.D0_03_int/CPE.TI8_int;1;X3Y30/CPE.COMBOUT2_int;;1"
+          }
+        },
+        "$abc$103$iopadmap$b": {
+          "hide_name": 1,
+          "bits": [ 28950 ] ,
+          "attributes": {
+            "ROUTING": "X0Y33/IOES.IO_IN1_n;;1;X3Y30/CPE.D0_01_int;X3Y30/CPE.D0_01_int/CPE.TI4_int;1;X3Y30/CPE.TI4_int;X3Y30/CPE.TI4_int/CPE.CINX;1;X3Y30/CPE.CINX;X3Y30/CPE.CINX/CPE.CINX_n;1;X0Y30/LES.CPE_CINX;X0Y30/LES.CPE_CINX/LES.SB_Y3_SEL1_int;1;X0Y30/LES.SB_Y3_SEL1_int;X0Y30/LES.SB_Y3_SEL1_int/LES.SB_Y3.P7;1;X0Y30/LES.SB_Y3.P7;X0Y30/LES.SB_Y3.P7/LES.SB_Y3.P7_n;1;X0Y30/IOES.ALTIN_07_n;X2Y30/SB_SML.P07.Y3/SB_SML.P07.Y3_int/INV;1;X2Y30/SB_SML.P07.Y3_int;X2Y30/SB_SML.P07.Y3_int/SB_SML.P07.YDIAG_int;1;X2Y30/SB_SML.P07.YDIAG_int;X2Y30/SB_SML.P07.YDIAG_int/SB_SML.P07.Y4_int;1;X2Y30/SB_SML.P07.Y4_int;X2Y30/SB_SML.P07.Y4_int/SB_SML.P07.D3_4;1;X2Y30/SB_SML.P07.D3_4;X2Y30/SB_SML.P07.D3_4/SB_SML.P07.D3_4_n;1;X2Y30/SB_SML.P07.D3_4_n;X2Y34/SB_SML.P07.Y4/SB_SML.P07.Y4_int/INV;1;X2Y34/SB_SML.P07.Y4_int;X2Y34/SB_SML.P07.Y4_int/SB_SML.P07.D0;1;X2Y34/SB_SML.P07.D0;X2Y34/SB_SML.P07.D0/SB_SML.P07.D0_IO;1;X2Y34/SB_SML.P07.D0_IO;X2Y34/SB_SML.P07.D0_IO/SB_SML.P07.D0_IO_n;1;X0Y34/IOES.SB_IN_07;X0Y34/IOES.SB_IN_07/IOES.IO_IN1;1;X0Y34/IOES.IO_IN1;X0Y34/IOES.IO_IN1/IOES.IO_IN1_n;1;X3Y26/CPE.PY1_VAL;X3Y26/CPE.PY1_VAL/CPE.PY1_OUT2;1;X3Y26/CPE.PY1_OUT2;X3Y26/CPE.PY1_OUT2/CPE.PINX;1;X3Y26/CPE.PINX;X3Y26/CPE.PINX/CPE.PINX_n;1;X0Y26/LES.CPE_PINX;X0Y26/LES.CPE_PINX/LES.SB_Y3_SEL2_int;1;X0Y26/LES.SB_Y3_SEL2_int;X0Y26/LES.SB_Y3_SEL2_int/LES.SB_Y3.P7;1;X0Y26/LES.SB_Y3.P7;X0Y26/LES.SB_Y3.P7/LES.SB_Y3.P7_n;1;X0Y26/LES.SB_Y3.P7_n;X2Y26/SB_SML.P07.Y3/SB_SML.P07.Y3_int/INV;1;X2Y26/SB_SML.P07.Y3_int;X2Y26/SB_SML.P07.Y3_int/SB_SML.P07.YDIAG_int;1;X2Y26/SB_SML.P07.YDIAG_int;X2Y26/SB_SML.P07.YDIAG_int/SB_SML.P07.Y4_int;1;X2Y26/SB_SML.P07.Y4_int;X2Y26/SB_SML.P07.Y4_int/SB_SML.P07.D3_4;1;X2Y26/SB_SML.P07.D3_4;X2Y26/SB_SML.P07.D3_4/SB_SML.P07.D3_4_n;1;X2Y26/SB_SML.P07.D3_4_n;X2Y30/SB_SML.P07.Y4/SB_SML.P07.Y4_int/INV;1"
+          }
+        },
+        "$abc$103$iopadmap$a": {
+          "hide_name": 1,
+          "bits": [ 28949 ] ,
+          "attributes": {
+            "ROUTING": "X0Y35/IOES.IO_IN1_n;;1;X3Y30/CPE.D1_00_int;X3Y30/CPE.D1_00_int/CPE.IN1_int;1;X3Y30/CPE.IN1_int;X3Y30/CPE.IN1_int/CPE.IN1;1;X3Y30/CPE.IN1;X3Y30/CPE.IN1/IM.P01.Y;1;X3Y30/IM.P01.Y;X3Y30/IM.P01.Y/IM.P01.D1/INV;1;X3Y30/IM.P01.D1;X3Y30/IM.P01.D1/IM.P01.D1_n;1;X3Y29/SB_SML.P01.Y2;X3Y29/SB_SML.P01.Y2/SB_SML.P01.Y2_int/INV;1;X3Y29/SB_SML.P01.Y2_int;X3Y29/SB_SML.P01.Y2_int/SB_SML.P01.YDIAG_int;1;X3Y29/SB_SML.P01.YDIAG_int;X3Y29/SB_SML.P01.YDIAG_int/SB_SML.P01.X12;1;X3Y29/SB_SML.P01.X12;X3Y29/SB_SML.P01.X12/SB_SML.P01.X12_n;1;X1Y27/SB_SML.P01.X34_n;X2Y28/SB_BIG.P01.YDIAG/SB_BIG.P01.Y4/INV;1;X2Y24/SB_BIG.P01.D3_4_n;X2Y28/SB_BIG.P01.Y4/SB_BIG.P01.D3_4/INV;1;X2Y28/SB_BIG.P01.D3_4;X2Y28/SB_BIG.P01.D3_4/SB_BIG.P01.D3_4_n;1;X2Y28/SB_BIG.P01.D3_4_n;X2Y32/SB_BIG.P01.Y4/SB_BIG.P01.D3_4/INV;1;X2Y32/SB_BIG.P01.D3_4;X2Y32/SB_BIG.P01.D3_4/SB_BIG.P01.D3_4_n;1;X2Y32/SB_BIG.P01.D3_4_n;X2Y36/SB_BIG.P01.Y4/SB_BIG.P01.D0/INV;1;X2Y36/SB_BIG.P01.D0;X2Y36/SB_BIG.P01.D0/SB_BIG.P01.D0_IO;1;X2Y36/SB_BIG.P01.D0_IO;X2Y36/SB_BIG.P01.D0_IO/SB_BIG.P01.D0_IO_n;1;X0Y36/IOES.SB_IN_01;X0Y36/IOES.SB_IN_01/IOES.IO_IN1;1;X0Y36/IOES.IO_IN1;X0Y36/IOES.IO_IN1/IOES.IO_IN1_n;1;X3Y28/CPE.PY1_VAL;X3Y28/CPE.PY1_VAL/CPE.PY1_OUT2;1;X3Y28/CPE.PY1_OUT2;X3Y28/CPE.PY1_OUT2/CPE.PINX;1;X3Y28/CPE.PINX;X3Y28/CPE.PINX/CPE.PINX_n;1;X0Y28/LES.CPE_PINX;X0Y28/LES.CPE_PINX/LES.SB_Y3_SEL2_int;1;X0Y28/LES.SB_Y3_SEL2_int;X0Y28/LES.SB_Y3_SEL2_int/LES.SB_Y3.P1;1;X0Y28/LES.SB_Y3.P1;X0Y28/LES.SB_Y3.P1/LES.SB_Y3.P1_n;1;X0Y28/IOES.ALTIN_01_n;X2Y28/SB_BIG.P01.Y3/SB_BIG.P01.YDIAG/INV;1;X3Y27/CPE.D0_03_int;X3Y27/CPE.D0_03_int/CPE.TI8_int;1;X3Y27/CPE.TI8_int;X3Y27/CPE.TI8_int/CPE.PINX;1;X3Y27/CPE.PINX;X3Y27/CPE.PINX/CPE.PINX_n;1;X0Y27/LES.CPE_PINX;X0Y27/LES.CPE_PINX/LES.SB_Y3_SEL2_int;1;X0Y27/LES.SB_Y3_SEL2_int;X0Y27/LES.SB_Y3_SEL2_int/LES.SB_Y3.P1;1;X0Y27/LES.SB_Y3.P1;X0Y27/LES.SB_Y3.P1/LES.SB_Y3.P1_n;1;X0Y27/IOES.ALTIN_01_n;X1Y27/SB_SML.P01.Y3/SB_SML.P01.Y3_int/INV;1;X1Y27/SB_SML.P01.Y3_int;X1Y27/SB_SML.P01.Y3_int/SB_SML.P01.YDIAG_int;1;X1Y27/SB_SML.P01.YDIAG_int;X1Y27/SB_SML.P01.YDIAG_int/SB_SML.P01.X34;1;X1Y27/SB_SML.P01.X34;X1Y27/SB_SML.P01.X34/SB_SML.P01.X34_n;1"
+          }
+        },
+        "$abc$103$iopadmap$cin": {
+          "hide_name": 1,
+          "bits": [ 28948 ] ,
+          "attributes": {
+            "ROUTING": "X0Y31/IOES.IO_IN1_n;;1;X3Y29/CPE.IN5_int;X3Y29/CPE.IN5_int/CPE.IN5;1;X3Y29/CPE.IN5;X3Y29/CPE.IN5/IM.P05.Y;1;X3Y29/IM.P05.Y;X3Y29/IM.P05.Y/IM.P05.D3/INV;1;X3Y29/IM.P05.D3;X3Y29/IM.P05.D3/IM.P05.D3_n;1;X3Y27/SB_BIG.P05.D3_4_n;X3Y31/SB_BIG.P05.Y4/SB_BIG.P05.YDIAG/INV;1;X2Y30/SB_SML.P05.X34_n;X3Y31/SB_BIG.P05.YDIAG/SB_BIG.P05.Y1/INV;1;X3Y31/SB_BIG.P05.Y1;X3Y31/SB_BIG.P05.Y1/SB_BIG.P05.D2_1/INV;1;X3Y31/SB_BIG.P05.D2_1;X3Y31/SB_BIG.P05.D2_1/SB_BIG.P05.D2_1_n;1;X1Y31/SB_SML.P05.Y1;X1Y31/SB_SML.P05.Y1/SB_SML.P05.Y1_int/INV;1;X1Y31/SB_SML.P05.Y1_int;X1Y31/SB_SML.P05.Y1_int/SB_SML.P05.D0;1;X1Y31/SB_SML.P05.D0;X1Y31/SB_SML.P05.D0/SB_SML.P05.D0_IO;1;X1Y31/SB_SML.P05.D0_IO;X1Y31/SB_SML.P05.D0_IO/SB_SML.P05.D0_IO_n;1;X0Y31/IOES.SB_IN_05;X0Y31/IOES.SB_IN_05/IOES.IO_IN1;1;X0Y31/IOES.IO_IN1;X0Y31/IOES.IO_IN1/IOES.IO_IN1_n;1;X3Y29/CPE.D0_02_int;X3Y29/CPE.D0_02_int/CPE.IN5_int;1;X3Y27/CPE.D1_02_int;X3Y27/CPE.D1_02_int/CPE.IN5_int;1;X3Y27/CPE.IN5_int;X3Y27/CPE.IN5_int/CPE.IN5;1;X3Y27/CPE.IN5;X3Y27/CPE.IN5/IM.P05.Y;1;X3Y27/IM.P05.Y;X3Y27/IM.P05.Y/IM.P05.D3/INV;1;X3Y27/IM.P05.D3;X3Y27/IM.P05.D3/IM.P05.D3_n;1;X3Y25/SB_SML.P05.D3_4_n;X3Y29/SB_SML.P05.Y4/SB_SML.P05.Y4_int/INV;1;X3Y29/SB_SML.P05.Y4_int;X3Y29/SB_SML.P05.Y4_int/SB_SML.P05.D2_4;1;X3Y29/SB_SML.P05.D2_4;X3Y29/SB_SML.P05.D2_4/SB_SML.P05.D2_4_n;1"
+          }
+        }
+      }
+    }
+  }
+}
