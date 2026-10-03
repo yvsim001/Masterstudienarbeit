@@ -1,0 +1,19 @@
+
+20. Printing statistics.
+
+=== Full_adder_process_case ===
+
+        +----------Local Count, excluding submodules.
+        | 
+        5 wires
+        5 wire bits
+        5 public wires
+        5 public wire bits
+        5 ports
+        5 port bits
+        1 memories
+       16 memory bits
+        2 cells
+        1   $meminit
+        1   $memrd_v2
+
